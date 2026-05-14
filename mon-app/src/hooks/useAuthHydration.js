@@ -9,9 +9,11 @@ export function useAuthHydration() {
   useEffect(() => {
     let cancelled = false;
 
+    const BASE = import.meta.env.VITE_API_URL ?? '';
+
     const hydrate = async () => {
       try {
-        const res = await fetch('/api/auth/refresh', {
+        const res = await fetch(`${BASE}/api/auth/refresh`, {
           method: 'POST',
           credentials: 'include',
         });
@@ -20,7 +22,7 @@ export function useAuthHydration() {
 
         const { accessToken } = await res.json();
 
-        const meRes = await fetch('/api/auth/me', {
+        const meRes = await fetch(`${BASE}/api/auth/me`, {
           headers: { Authorization: `Bearer ${accessToken}` },
           credentials: 'include',
         });
