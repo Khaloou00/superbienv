@@ -27,12 +27,6 @@ const FILM_TYPES  = ['Film', 'Match', 'Événement', 'Concert'];
 const FILM_BADGES = ['', 'NOUVEAU', 'CE SOIR', 'COMPLET', 'VIP'];
 const EVENT_TYPES = ['Soirée corpo', 'Anniversaire', 'Mariage', 'Match', 'Concert', 'Autre'];
 
-const MOCK_REVENUE = [
-  { day: 'Lun', recettes: 125000 }, { day: 'Mar', recettes: 80000 },
-  { day: 'Mer', recettes: 200000 }, { day: 'Jeu', recettes: 155000 },
-  { day: 'Ven', recettes: 320000 }, { day: 'Sam', recettes: 480000 },
-  { day: 'Dim', recettes: 390000 },
-];
 
 const INIT_FILM = {
   titre: '', synopsis: '', genre: 'Action', type: 'Film',
@@ -259,10 +253,10 @@ export default function AdminDashboard() {
   };
 
   const statCards = [
-    { label: 'Réservations',   value: stats?.stats?.totalReservations ?? 0,                                       icon: Ticket,     color: 'text-gold' },
-    { label: 'Recettes',       value: `${(stats?.stats?.recettesTotales ?? 0).toLocaleString('fr-CI')} F`,        icon: TrendingUp, color: 'text-green-400' },
-    { label: 'Films actifs',   value: filmsData?.total ?? 0,                                                       icon: Film,       color: 'text-blue-400' },
-    { label: 'Véhicules/soir', value: stats?.stats?.tauxOccupation?.length ?? 0,                                  icon: Car,        color: 'text-cinema' },
+    { label: 'Réservations',   value: stats?.stats?.totalReservations ?? 0,                                  icon: Ticket,     color: 'text-gold' },
+    { label: 'Recettes',       value: `${(stats?.stats?.recettesTotales ?? 0).toLocaleString('fr-CI')} F`,   icon: TrendingUp, color: 'text-green-400' },
+    { label: 'Films actifs',   value: stats?.stats?.filmsActifs ?? 0,                                         icon: Film,       color: 'text-blue-400' },
+    { label: 'Véhicules actifs', value: stats?.stats?.vehiculesActifs ?? 0,                                   icon: Car,        color: 'text-cinema' },
   ];
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -316,14 +310,14 @@ export default function AdminDashboard() {
             <div className="bg-surface rounded-2xl p-4 sm:p-6 border border-white/5">
               <h3 className="font-label font-semibold mb-4 text-sm sm:text-base">Recettes de la semaine</h3>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={MOCK_REVENUE} margin={{ left: -10 }}>
-                  <XAxis dataKey="day" tick={{ fill: '#A0A0A0', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <BarChart data={stats?.stats?.recettesHebdo ?? []} margin={{ left: -10 }}>
+                  <XAxis dataKey="jour" tick={{ fill: '#A0A0A0', fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#A0A0A0', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                   <Tooltip
                     contentStyle={{ background: '#141414', border: '1px solid rgba(245,197,24,0.2)', borderRadius: 8, color: '#fff', fontSize: 12 }}
                     formatter={(v) => [`${v.toLocaleString('fr-CI')} FCFA`, 'Recettes']}
                   />
-                  <Bar dataKey="recettes" fill="#F5C518" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" fill="#F5C518" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

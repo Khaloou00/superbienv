@@ -252,21 +252,48 @@ export const scanBookingByNumero = async (req, res, next) => {
 // GET /api/bookings/stats — admin
 export const getStats = async (_req, res, next) => {
   try {
-    const totalReservations = await Booking.countDocuments({ statut: { $ne: 'annulée' } });
-    const recettes = await Booking.aggregate([
-      { $match: { 'paiement.statut': 'confirmé' } },
-      { $group: { _id: null, total: { $sum: '$paiement.montant' } } },
+    const notCancelled = { statut: { $ne: 'annulée' } };
+
+    const [totalReservations, recettesAgg, filmsActifs, vehiculesActifs] = await Promise.all([
+      Booking.countDocuments(notCancelled),
+      Booking.aggregate([
+        { $match: notCancelled },
+        { $group: { _id: null, total: { $sum: '$paiement.montant' } } },
+      ]),
+      Film.countDocuments({ isActive: true }),
+      Booking.countDocuments({ statut: 'active' }),
     ]);
-    const tauxOccupation = await Booking.aggregate([
-      { $match: { statut: 'active' } },
-      { $group: { _id: '$filmId', count: { $sum: 1 } } },
+
+    // Weekly revenue — Monday to Sunday of current week
+    const today = new Date();
+    const daysFromMonday = today.getDay() === 0 ? 6 : today.getDay() - 1;
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - daysFromMonday);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const hebdoRaw = await Booking.aggregate([
+      { $match: { ...notCancelled, createdAt: { $gte: weekStart, $lte: weekEnd } } },
+      { $group: { _id: { $dayOfWeek: '$createdAt' }, total: { $sum: '$paiement.montant' } } },
     ]);
+
+    // $dayOfWeek: 1=Sun, 2=Mon … 7=Sat  →  display Mon→Sun
+    const DAY_LABEL = { 1: 'Dim', 2: 'Lun', 3: 'Mar', 4: 'Mer', 5: 'Jeu', 6: 'Ven', 7: 'Sam' };
+    const recettesHebdo = [2, 3, 4, 5, 6, 7, 1].map((dow) => ({
+      jour: DAY_LABEL[dow],
+      total: hebdoRaw.find((r) => r._id === dow)?.total || 0,
+    }));
+
     res.json({
       success: true,
       stats: {
         totalReservations,
-        recettesTotales: recettes[0]?.total || 0,
-        tauxOccupation,
+        recettesTotales: recettesAgg[0]?.total || 0,
+        filmsActifs,
+        vehiculesActifs,
+        recettesHebdo,
       },
     });
   } catch (err) {
