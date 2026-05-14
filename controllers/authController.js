@@ -12,10 +12,11 @@ const signAccess = (id) =>
 const signRefresh = (id, version) =>
   jwt.sign({ id, v: version }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
+const isProd = process.env.NODE_ENV === 'production';
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'strict',
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
