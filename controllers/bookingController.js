@@ -55,8 +55,8 @@ export const createBooking = async (req, res, next) => {
       paiement: { ...paiement, montant, statut: 'confirmé' },
     });
 
-    const qrData = { bookingId: booking._id, numero: booking.numero, filmId, seanceId, place };
-    booking.qrCode = await generateQRCode(qrData);
+    const qrUrl = `${process.env.FRONTEND_URL}/verify/${booking.numero}`;
+    booking.qrCode = await generateQRCode(qrUrl);
     await booking.save();
 
     const seance = film.seances?.find((s) => s._id.toString() === seanceId);
@@ -188,6 +188,62 @@ export const getAllBookings = async (req, res, next) => {
       .skip((page - 1) * limit)
       .limit(Number(limit));
     res.json({ success: true, total, bookings });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/bookings/verify/:numero — public
+export const verifyBooking = async (req, res, next) => {
+  try {
+    const booking = await Booking.findOne({ numero: req.params.numero })
+      .populate('filmId', 'titre seances')
+      .populate('userId', 'nom');
+
+    if (!booking) {
+      return res.json({ valid: false, message: 'Réservation introuvable' });
+    }
+
+    const seance = booking.filmId?.seances?.id(booking.seanceId);
+
+    res.json({
+      valid: true,
+      numero: booking.numero,
+      statut: booking.statut,
+      film: {
+        titre: booking.filmId?.titre,
+        seanceDate: seance?.date,
+        seanceHeure: seance?.heure,
+      },
+      place: booking.place,
+      isVIP: booking.isVIP,
+      userName: booking.userId?.nom,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PATCH /api/bookings/verify/:numero/scan — admin only
+export const scanBookingByNumero = async (req, res, next) => {
+  try {
+    const booking = await Booking.findOne({ numero: req.params.numero });
+
+    if (!booking) {
+      res.status(404);
+      return next(new Error('Réservation introuvable'));
+    }
+    if (booking.statut === 'annulée') {
+      res.status(400);
+      return next(new Error('Réservation annulée'));
+    }
+    if (booking.statut === 'utilisée') {
+      return res.json({ success: false, message: 'QR déjà utilisé', booking });
+    }
+
+    booking.statut = 'utilisée';
+    await booking.save();
+    res.json({ success: true, message: 'Entrée validée', booking });
   } catch (err) {
     next(err);
   }

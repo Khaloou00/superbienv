@@ -15,6 +15,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import FilmDetail from './pages/FilmDetail';
 import EventDetail from './pages/EventDetail';
 import VerifyOTP from './pages/VerifyOTP';
+import VerifyBooking from './pages/VerifyBooking';
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -49,7 +50,9 @@ function AdminRoute({ children }) {
 export default function App() {
   const location = useLocation();
   const isHydrating = useAuthHydration();
-  const noLayout = ['/connexion', '/inscription', '/mot-de-passe-oublie', '/verify-otp'].includes(location.pathname) || location.pathname.startsWith('/reset-password');
+  const noLayout = ['/connexion', '/inscription', '/mot-de-passe-oublie', '/verify-otp'].includes(location.pathname)
+    || location.pathname.startsWith('/reset-password')
+    || location.pathname.startsWith('/verify/');
 
   if (isHydrating) {
     return (
@@ -73,6 +76,7 @@ export default function App() {
         <Route path="/connexion" element={<PageWrapper><Login /></PageWrapper>} />
         <Route path="/inscription" element={<PageWrapper><Register /></PageWrapper>} />
         <Route path="/verify-otp" element={<PageWrapper><VerifyOTP /></PageWrapper>} />
+        <Route path="/verify/:numero" element={<VerifyBooking />} />
         <Route
           path="/reservation/:filmId"
           element={<PrivateRoute><PageWrapper><Booking /></PageWrapper></PrivateRoute>}
