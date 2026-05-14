@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from '../store/slices/authSlice';
+import { setCredentials, setInitialized } from '../store/slices/authSlice';
 
 export function useAuthHydration() {
   const dispatch = useDispatch();
@@ -34,7 +34,10 @@ export function useAuthHydration() {
       } catch {
         // No valid session — remain unauthenticated silently
       } finally {
-        if (!cancelled) setIsHydrating(false);
+        if (!cancelled) {
+          dispatch(setInitialized());
+          setIsHydrating(false);
+        }
       }
     };
 

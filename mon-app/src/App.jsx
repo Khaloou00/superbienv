@@ -50,10 +50,20 @@ function AdminRoute({ children }) {
 }
 
 function StaffRoute({ children }) {
+  const isInitialized = useSelector((state) => state.auth.isInitialized);
   const isAuth = useSelector(selectIsAuthenticated);
   const user = useSelector(selectCurrentUser);
-  if (!isAuth) return <Navigate to="/staff/login" replace />;
-  if (user?.role !== 'staff' && user?.role !== 'admin') return <Navigate to="/staff/login" replace />;
+
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-night flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!isAuth || (user?.role !== 'staff' && user?.role !== 'admin')) {
+    return <Navigate to="/staff/login" replace />;
+  }
   return children;
 }
 
