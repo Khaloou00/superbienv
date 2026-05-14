@@ -1,6 +1,7 @@
 import Booking from '../models/Booking.js';
 import Film from '../models/Film.js';
 import { generateQRCode } from '../utils/generateQR.js';
+import { generateTicketPdf } from '../utils/generateTicketPdf.js';
 import { sendEmail, bookingConfirmationEmail } from '../utils/sendEmail.js';
 import logger from '../utils/logger.js';
 
@@ -58,7 +59,26 @@ export const createBooking = async (req, res, next) => {
     booking.qrCode = await generateQRCode(qrData);
     await booking.save();
 
-    sendEmail({ to: req.user.email, ...bookingConfirmationEmail(booking, film, req.user) })
+    const seance = film.seances?.find((s) => s._id.toString() === seanceId);
+    const pdfBuffer = await generateTicketPdf({
+      numero:       booking.numero,
+      filmTitre:    film.titre,
+      place:        booking.place,
+      isVIP:        booking.isVIP,
+      immatriculation: booking.immatriculation,
+      montant:      booking.paiement.montant,
+      methode:      booking.paiement.methode,
+      qrCodeBase64: booking.qrCode,
+      seanceDate:   seance?.date,
+      seanceHeure:  seance?.heure,
+      userName:     req.user.nom,
+    }).catch((err) => { logger.warn('Échec génération PDF billet', { bookingId: booking._id, err: err.message }); return null; });
+
+    const attachments = pdfBuffer
+      ? [{ filename: `Billet_SUPERBIENV_${booking.numero}.pdf`, content: pdfBuffer, contentType: 'application/pdf' }]
+      : [];
+
+    sendEmail({ to: req.user.email, ...bookingConfirmationEmail(booking, film, req.user), attachments })
       .catch((err) => logger.warn('Échec envoi email confirmation', { bookingId: booking._id, err: err.message }));
 
     res.status(201).json({ success: true, booking });

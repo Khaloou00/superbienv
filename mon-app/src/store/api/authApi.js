@@ -8,6 +8,12 @@ export const authApi = createApi({
     register: builder.mutation({
       query: (body) => ({ url: '/auth/register', method: 'POST', body }),
     }),
+    verifyOtp: builder.mutation({
+      query: (body) => ({ url: '/auth/verify-otp', method: 'POST', body }),
+    }),
+    resendOtp: builder.mutation({
+      query: (body) => ({ url: '/auth/resend-otp', method: 'POST', body }),
+    }),
     login: builder.mutation({
       query: (body) => ({ url: '/auth/login', method: 'POST', body }),
     }),
@@ -35,4 +41,5 @@ export const {
   useRegisterMutation, useLoginMutation, useLogoutMutation,
   useGetMeQuery, useUpdateMeMutation,
   useForgotPasswordMutation, useResetPasswordMutation,
+  useVerifyOtpMutation, useResendOtpMutation,
 } = authApi;

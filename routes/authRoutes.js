@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   register, login, refresh, logout, getMe, updateMe,
-  forgotPassword, resetPassword,
+  forgotPassword, resetPassword, verifyOTP, resendOTP,
 } from '../controllers/authController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validate.js';
@@ -13,6 +13,8 @@ import {
 const router = Router();
 
 router.post('/register', validate(registerSchema), register);
+router.post('/verify-otp', verifyOTP);
+router.post('/resend-otp', resendOTP);
 router.post('/login', validate(loginSchema), login);
 router.post('/refresh', refresh);
 router.post('/logout', logout);

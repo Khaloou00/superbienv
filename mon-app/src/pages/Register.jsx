@@ -5,9 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { useRegisterMutation } from '../store/api/authApi';
-import { setCredentials, selectIsAuthenticated } from '../store/slices/authSlice';
+import { selectIsAuthenticated } from '../store/slices/authSlice';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import StarField from '../components/ui/StarField';
@@ -24,7 +24,6 @@ const schema = z.object({
 });
 
 export default function Register() {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const isAuth = useSelector(selectIsAuthenticated);
   const [registerMutation, { isLoading }] = useRegisterMutation();
@@ -35,10 +34,9 @@ export default function Register() {
 
   const onSubmit = async ({ confirmPassword, ...values }) => {
     try {
-      const data = await registerMutation(values).unwrap();
-      dispatch(setCredentials({ user: data.user, accessToken: data.accessToken }));
-      toast.success('Compte créé ! Bienvenue 🎬');
-      navigate('/');
+      await registerMutation(values).unwrap();
+      toast.success('Code OTP envoyé à votre email !');
+      navigate('/verify-otp', { state: { email: values.email } });
     } catch (err) {
       toast.error(err.data?.message || 'Erreur lors de l\'inscription');
     }

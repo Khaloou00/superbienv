@@ -1,8 +1,10 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import User from '../models/User.js';
-import { sendEmail } from '../utils/sendEmail.js';
+import { sendEmail, otpEmail } from '../utils/sendEmail.js';
 import { cloudinary } from '../utils/uploadCloud.js';
+
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const signAccess = (id) =>
   jwt.sign({ id }, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
@@ -21,20 +23,90 @@ const cookieOptions = {
 export const register = async (req, res, next) => {
   try {
     const { nom, email, password, telephone } = req.body;
-    const exists = await User.findOne({ email });
-    if (exists) {
-      res.status(400);
-      return next(new Error('Cet email est déjà utilisé'));
+    const existing = await User.findOne({ email });
+    if (existing) {
+      if (existing.isVerified) {
+        res.status(400);
+        return next(new Error('Cet email est déjà utilisé'));
+      }
+      // Unverified account — resend a fresh OTP instead of blocking
+      const otp = generateOTP();
+      existing.otp = otp;
+      existing.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
+      await existing.save({ validateBeforeSave: false });
+      await sendEmail({ to: existing.email, ...otpEmail(existing, otp) });
+      return res.status(200).json({ success: true, message: 'Code OTP renvoyé à votre email' });
     }
-    const user = await User.create({ nom, email, password, telephone });
+    const otp = generateOTP();
+    const user = await User.create({
+      nom, email, password, telephone,
+      otp,
+      otpExpire: new Date(Date.now() + 10 * 60 * 1000),
+    });
+    await sendEmail({ to: user.email, ...otpEmail(user, otp) });
+    res.status(201).json({ success: true, message: 'Compte créé. Vérifiez votre email pour le code OTP.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/auth/verify-otp
+export const verifyOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const user = await User.findOne({ email }).select('+otp +otpExpire');
+    if (!user) {
+      res.status(404);
+      return next(new Error('Utilisateur introuvable'));
+    }
+    if (user.isVerified) {
+      res.status(400);
+      return next(new Error('Compte déjà vérifié'));
+    }
+    if (!user.otp || user.otp !== otp) {
+      res.status(400);
+      return next(new Error('Code OTP incorrect'));
+    }
+    if (user.otpExpire < new Date()) {
+      res.status(400);
+      return next(new Error('Code OTP expiré. Demandez-en un nouveau.'));
+    }
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpire = undefined;
+    await user.save({ validateBeforeSave: false });
     const accessToken = signAccess(user._id);
     const refreshToken = signRefresh(user._id, user.refreshTokenVersion);
     res.cookie('refreshToken', refreshToken, cookieOptions);
-    res.status(201).json({
+    res.json({
       success: true,
       accessToken,
       user: { id: user._id, nom: user.nom, email: user.email, role: user.role },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/auth/resend-otp
+export const resendOTP = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(404);
+      return next(new Error('Utilisateur introuvable'));
+    }
+    if (user.isVerified) {
+      res.status(400);
+      return next(new Error('Compte déjà vérifié'));
+    }
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+    await sendEmail({ to: user.email, ...otpEmail(user, otp) });
+    res.json({ success: true, message: 'Nouveau code OTP envoyé' });
   } catch (err) {
     next(err);
   }
@@ -48,6 +120,10 @@ export const login = async (req, res, next) => {
     if (!user || !(await user.matchPassword(password))) {
       res.status(401);
       return next(new Error('Email ou mot de passe incorrect'));
+    }
+    if (!user.isVerified) {
+      res.status(403);
+      return next(new Error('Compte non vérifié. Vérifiez votre email pour le code OTP.'));
     }
     if (!user.isActive) {
       res.status(403);
