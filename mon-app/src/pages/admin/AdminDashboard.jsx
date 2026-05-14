@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   LayoutDashboard, Film, Ticket, QrCode, TrendingUp, Car,
-  CalendarDays, Plus, X, ImagePlus,
+  CalendarDays, Plus, X, ImagePlus, AlertTriangle, ChevronDown, ChevronUp,
 } from 'lucide-react';
-import { useGetStatsQuery, useGetAllBookingsQuery, useScanQRMutation } from '../../store/api/bookingsApi';
+import { useGetStatsQuery, useGetAllBookingsQuery, useScanQRMutation, useGetExpiredStatsQuery } from '../../store/api/bookingsApi';
 import { useGetFilmsQuery, useDeleteFilmMutation, useCreateFilmMutation, useUpdateFilmMutation } from '../../store/api/filmsApi';
 import { useGetEventsQuery, useCreateEventMutation, useDeleteEventMutation, useUpdateEventMutation } from '../../store/api/eventsApi';
 import toast from 'react-hot-toast';
@@ -84,6 +84,7 @@ const TextArea = ({ label, error, ...props }) => (
 export default function AdminDashboard() {
   const [tab, setTab] = useState('overview');
   const [scanId, setScanId] = useState('');
+  const [expiredOpen, setExpiredOpen] = useState(false);
 
   // Film modal
   const [filmModal, setFilmModal] = useState(false);
@@ -105,6 +106,7 @@ export default function AdminDashboard() {
 
   // Queries & mutations
   const { data: stats }        = useGetStatsQuery();
+  const { data: expiredData }  = useGetExpiredStatsQuery();
   const { data: bookingsData } = useGetAllBookingsQuery({ limit: 10 });
   const { data: filmsData }    = useGetFilmsQuery({ limit: 50 });
   const { data: eventsData }   = useGetEventsQuery();
@@ -321,6 +323,85 @@ export default function AdminDashboard() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+
+            {/* Expired / used tickets stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="bg-surface border border-white/5 rounded-2xl p-4 sm:p-5">
+                <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center mb-3 text-green-400">
+                  <Ticket size={16} />
+                </div>
+                <p className="font-headline font-bold text-xl sm:text-2xl text-white leading-none">
+                  {expiredData?.ticketsUtilises ?? '—'}
+                </p>
+                <p className="text-muted text-xs font-label mt-1">Billets utilisés (total)</p>
+              </div>
+              <div className="bg-surface border border-white/5 rounded-2xl p-4 sm:p-5">
+                <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center mb-3 text-amber-400">
+                  <AlertTriangle size={16} />
+                </div>
+                <p className="font-headline font-bold text-xl sm:text-2xl text-white leading-none">
+                  {expiredData?.ticketsNonUtilisesExpires ?? '—'}
+                </p>
+                <p className="text-muted text-xs font-label mt-1">Billets expirés inutilisés</p>
+              </div>
+              <div className="bg-surface border border-white/5 rounded-2xl p-4 sm:p-5">
+                <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center mb-3 text-cinema">
+                  <TrendingUp size={16} />
+                </div>
+                <p className="font-headline font-bold text-xl sm:text-2xl text-cinema leading-none">
+                  {expiredData ? `${(expiredData.montantPerdu ?? 0).toLocaleString('fr-CI')} F` : '—'}
+                </p>
+                <p className="text-muted text-xs font-label mt-1">Montant non encaissé</p>
+              </div>
+            </div>
+
+            {/* Collapsible expired bookings table */}
+            {(expiredData?.detailExpires?.length ?? 0) > 0 && (
+              <div className="bg-surface rounded-2xl border border-white/5 overflow-hidden">
+                <button
+                  onClick={() => setExpiredOpen((p) => !p)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={15} className="text-amber-400" />
+                    <h3 className="font-label font-semibold text-sm">
+                      Réservations expirées inutilisées ({expiredData.detailExpires.length})
+                    </h3>
+                  </div>
+                  {expiredOpen ? <ChevronUp size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
+                </button>
+
+                {expiredOpen && (
+                  <div className="border-t border-white/5 overflow-x-auto">
+                    <table className="w-full text-sm min-w-[500px]">
+                      <thead>
+                        <tr className="text-muted font-label text-xs border-b border-white/5">
+                          {['N°', 'Client', 'Film', 'Séance', 'Place', 'Montant'].map((h) => (
+                            <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {expiredData.detailExpires.map((b) => (
+                          <tr key={b._id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                            <td className="px-4 py-3 font-label text-xs text-muted">{b.numero?.slice(-8)}</td>
+                            <td className="px-4 py-3 text-xs">{b.userName || '—'}</td>
+                            <td className="px-4 py-3 text-muted text-xs truncate max-w-[140px]">{b.film || '—'}</td>
+                            <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
+                              {b.seanceDate ? new Date(b.seanceDate).toLocaleDateString('fr-CI') : '—'}
+                            </td>
+                            <td className="px-4 py-3 font-label text-xs">{b.place || '—'}</td>
+                            <td className="px-4 py-3 text-cinema font-label text-xs">
+                              {b.montant?.toLocaleString('fr-CI')} F
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="bg-surface rounded-2xl border border-white/5 overflow-hidden">
               <div className="p-4 border-b border-white/5">

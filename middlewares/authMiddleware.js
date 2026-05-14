@@ -29,3 +29,11 @@ export const adminOnly = (req, res, next) => {
   }
   next();
 };
+
+export const staffOrAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin' && req.user?.role !== 'staff') {
+    res.status(403);
+    return next(new Error('Accès refusé — réservé au personnel SUPERBIENV'));
+  }
+  next();
+};

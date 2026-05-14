@@ -32,10 +32,21 @@ export const bookingsApi = createApi({
       query: (body) => ({ url: '/bookings/scan', method: 'POST', body }),
       invalidatesTags: ['Bookings'],
     }),
+    getStaffStats: builder.query({
+      query: (params) => ({ url: '/bookings/stats/staff', params }),
+    }),
+    getExpiredStats: builder.query({
+      query: () => '/bookings/stats/expired',
+    }),
+    scanBookingByNumero: builder.mutation({
+      query: (numero) => ({ url: `/bookings/verify/${numero}/scan`, method: 'PATCH' }),
+      invalidatesTags: ['Bookings'],
+    }),
   }),
 });
 
 export const {
   useCreateBookingMutation, useGetMesReservationsQuery, useGetBookingQuery,
   useGetAllBookingsQuery, useGetStatsQuery, useAnnulerBookingMutation, useScanQRMutation,
+  useGetStaffStatsQuery, useGetExpiredStatsQuery, useScanBookingByNumeroMutation,
 } = bookingsApi;

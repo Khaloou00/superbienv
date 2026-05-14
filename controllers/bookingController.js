@@ -193,6 +193,90 @@ export const getAllBookings = async (req, res, next) => {
   }
 };
 
+// GET /api/bookings/stats/staff — staff + admin
+export const getStaffStats = async (req, res, next) => {
+  try {
+    const { from, to } = req.query;
+    const now = new Date();
+
+    const rangeEnd = to ? new Date(to) : new Date(now);
+    rangeEnd.setHours(23, 59, 59, 999);
+
+    const rangeStart = from ? new Date(from) : new Date(now);
+    if (!from) {
+      rangeStart.setDate(rangeStart.getDate() - 30);
+    }
+    rangeStart.setHours(0, 0, 0, 0);
+
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [ticketsScannesToday, ticketsScannesTotal, parJourRaw] = await Promise.all([
+      Booking.countDocuments({ statut: 'utilisée', updatedAt: { $gte: todayStart } }),
+      Booking.countDocuments({ statut: 'utilisée' }),
+      Booking.aggregate([
+        { $match: { statut: 'utilisée', updatedAt: { $gte: rangeStart, $lte: rangeEnd } } },
+        { $group: {
+          _id: { $dateToString: { format: '%d/%m/%Y', date: '$updatedAt' } },
+          count: { $sum: 1 },
+        }},
+        { $sort: { _id: -1 } },
+      ]),
+    ]);
+
+    res.json({
+      success: true,
+      ticketsScannesToday,
+      ticketsScannesTotal,
+      ticketsScannesParJour: parJourRaw.map((r) => ({ date: r._id, count: r.count })),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/bookings/stats/expired — admin only
+export const getExpiredStats = async (req, res, next) => {
+  try {
+    const now = new Date();
+
+    const [ticketsUtilises, expiredRaw] = await Promise.all([
+      Booking.countDocuments({ statut: 'utilisée' }),
+      Booking.aggregate([
+        { $match: { statut: 'active' } },
+        { $lookup: { from: 'films', localField: 'filmId', foreignField: '_id', as: 'film' } },
+        { $unwind: '$film' },
+        { $unwind: '$film.seances' },
+        { $match: { $expr: { $eq: ['$seanceId', '$film.seances._id'] } } },
+        { $match: { 'film.seances.date': { $lt: now } } },
+        { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'user' } },
+        { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+        { $project: {
+          numero: 1,
+          place: 1,
+          montant: '$paiement.montant',
+          seanceDate: '$film.seances.date',
+          film: '$film.titre',
+          userName: '$user.nom',
+        }},
+        { $sort: { seanceDate: -1 } },
+      ]),
+    ]);
+
+    const montantPerdu = expiredRaw.reduce((sum, b) => sum + (b.montant || 0), 0);
+
+    res.json({
+      success: true,
+      ticketsUtilises,
+      ticketsNonUtilisesExpires: expiredRaw.length,
+      montantPerdu,
+      detailExpires: expiredRaw,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // GET /api/bookings/verify/:numero — public
 export const verifyBooking = async (req, res, next) => {
   try {

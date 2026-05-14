@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6, select: false },
     telephone: { type: String, trim: true },
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    role: { type: String, enum: ['user', 'staff', 'admin'], default: 'user' },
     avatar: { type: String },
     idNumber: { type: String, trim: true },
     filmsFavoris: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Film' }],

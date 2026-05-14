@@ -16,6 +16,8 @@ import FilmDetail from './pages/FilmDetail';
 import EventDetail from './pages/EventDetail';
 import VerifyOTP from './pages/VerifyOTP';
 import VerifyBooking from './pages/VerifyBooking';
+import StaffLogin from './pages/staff/StaffLogin';
+import StaffScanner from './pages/staff/StaffScanner';
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -47,12 +49,21 @@ function AdminRoute({ children }) {
   return children;
 }
 
+function StaffRoute({ children }) {
+  const isAuth = useSelector(selectIsAuthenticated);
+  const user = useSelector(selectCurrentUser);
+  if (!isAuth) return <Navigate to="/staff/login" replace />;
+  if (user?.role !== 'staff' && user?.role !== 'admin') return <Navigate to="/staff/login" replace />;
+  return children;
+}
+
 export default function App() {
   const location = useLocation();
   const isHydrating = useAuthHydration();
   const noLayout = ['/connexion', '/inscription', '/mot-de-passe-oublie', '/verify-otp'].includes(location.pathname)
     || location.pathname.startsWith('/reset-password')
-    || location.pathname.startsWith('/verify/');
+    || location.pathname.startsWith('/verify/')
+    || location.pathname.startsWith('/staff/');
 
   if (isHydrating) {
     return (
@@ -77,6 +88,11 @@ export default function App() {
         <Route path="/inscription" element={<PageWrapper><Register /></PageWrapper>} />
         <Route path="/verify-otp" element={<PageWrapper><VerifyOTP /></PageWrapper>} />
         <Route path="/verify/:numero" element={<VerifyBooking />} />
+        <Route path="/staff/login" element={<StaffLogin />} />
+        <Route
+          path="/staff/scanner"
+          element={<StaffRoute><StaffScanner /></StaffRoute>}
+        />
         <Route
           path="/reservation/:filmId"
           element={<PrivateRoute><PageWrapper><Booking /></PageWrapper></PrivateRoute>}
