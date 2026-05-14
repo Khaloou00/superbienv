@@ -18,6 +18,7 @@ import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 connectDB();
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(helmet());
 const allowedOrigins = [
