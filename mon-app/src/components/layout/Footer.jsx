@@ -24,14 +24,14 @@ export default function Footer() {
           <div>
             <h4 className="font-label font-semibold text-white mb-4">Contact</h4>
             <ul className="space-y-3 text-sm text-muted">
-              <li className="flex items-center gap-2"><MapPin size={14} className="text-gold flex-shrink-0" /> Abidjan, Plateau</li>
-              <li className="flex items-center gap-2"><Phone size={14} className="text-gold flex-shrink-0" /> +225 XX XX XX XX</li>
-              <li className="flex items-center gap-2"><Mail size={14} className="text-gold flex-shrink-0" /> contact@superbienv.ci</li>
+              <li className="flex items-center gap-2"><MapPin size={14} className="text-gold flex-shrink-0" /> Abidjan, Cocody Riviera-Faya</li>
+              <li className="flex items-center gap-2"><Phone size={14} className="text-gold flex-shrink-0" /> +225 07 97 66 19 59</li>
+              <li className="flex items-center gap-2"><Mail size={14} className="text-gold flex-shrink-0" /> assistant@superbe.store</li>
             </ul>
           </div>
         </div>
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted">
-          <p>© 2024 SUPERBIENV. Tous droits réservés.</p>
+          <p>© 2026 SUPERBIENV. Tous droits réservés.</p>
           <p className="font-label">Vivez le cinéma autrement ✨</p>
         </div>
       </div>
