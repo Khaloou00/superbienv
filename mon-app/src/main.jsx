@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import App from './App';
 import { store } from './store';
 import './index.css';
+import './registerSW';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

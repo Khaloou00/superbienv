@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated, selectCurrentUser } from './store/slices/authSlice';
@@ -120,7 +121,7 @@ export default function App() {
     </AnimatePresence>
   );
 
-  if (noLayout) return routes;
+  if (noLayout) return <>{routes}<Analytics /></>;
 
-  return <Layout>{routes}</Layout>;
+  return <Layout>{routes}<Analytics /></Layout>;
 }
