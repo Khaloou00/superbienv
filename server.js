@@ -23,6 +23,9 @@ app.set('trust proxy', 1);
 app.use(helmet());
 const allowedOrigins = [
   'http://localhost:5173',
+  'https://superbienv.vercel.app',
+  'https://sperbienv.fun',
+  'https://www.sperbienv.fun',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
