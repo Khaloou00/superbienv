@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const GENRES = ['Action', 'Comédie', 'Drame', 'Horreur', 'Romance', 'Thriller', 'Animation', 'Documentaire', 'Sport', 'Concert', 'Événement'];
+const GENRES = ['Action', 'Comédie', 'Drame', 'Horreur', 'Romance', 'Thriller', 'Animation', 'Documentaire', 'Sport', 'Concert', 'Événement', 'Science-Fiction', 'Fantastique', 'Aventure', 'Comédie Musicale', 'Guerre'];
 const TYPES = ['Film', 'Match', 'Événement', 'Concert'];
 const BADGES = ['NOUVEAU', 'CE SOIR', 'COMPLET', 'VIP', ''];
 

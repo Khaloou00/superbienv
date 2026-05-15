@@ -22,7 +22,7 @@ const TABS = [
   { id: 'scanner',   label: 'Scanner QR',       icon: QrCode },
 ];
 
-const FILM_GENRES = ['Action', 'Comédie', 'Drame', 'Horreur', 'Romance', 'Thriller', 'Animation', 'Documentaire', 'Sport', 'Concert', 'Événement'];
+const FILM_GENRES = ['Action', 'Comédie', 'Drame', 'Horreur', 'Romance', 'Thriller', 'Animation', 'Documentaire', 'Sport', 'Concert', 'Événement', 'Science-Fiction', 'Fantastique', 'Aventure', 'Comédie Musicale', 'Guerre'];
 const FILM_TYPES  = ['Film', 'Match', 'Événement', 'Concert'];
 const FILM_BADGES = ['', 'NOUVEAU', 'CE SOIR', 'COMPLET', 'VIP'];
 const EVENT_TYPES = ['Soirée corpo', 'Anniversaire', 'Mariage', 'Match', 'Concert', 'Autre'];

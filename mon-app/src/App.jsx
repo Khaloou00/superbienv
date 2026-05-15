@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
+const IS_VERCEL = typeof window !== 'undefined' && (window.location.hostname.endsWith('.vercel.app') || window.location.hostname === 'sperbienv.fun' || window.location.hostname === 'www.sperbienv.fun');
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated, selectCurrentUser } from './store/slices/authSlice';
@@ -121,7 +122,7 @@ export default function App() {
     </AnimatePresence>
   );
 
-  if (noLayout) return <>{routes}<Analytics /></>;
+  if (noLayout) return <>{routes}{IS_VERCEL && <Analytics />}</>;
 
-  return <Layout>{routes}<Analytics /></Layout>;
+  return <Layout>{routes}{IS_VERCEL && <Analytics />}</Layout>;
 }

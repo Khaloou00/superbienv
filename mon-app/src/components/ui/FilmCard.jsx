@@ -20,14 +20,13 @@ export default function FilmCard({ film }) {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-night via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-          <button
-            className="w-full"
+          <Button
+            variant="primary"
+            className="w-full text-sm py-2.5"
             onClick={(e) => { e.stopPropagation(); navigate(`/reservation/${film._id}`); }}
           >
-            <Button variant="primary" className="w-full text-sm py-2.5" as="div">
-              Réserver
-            </Button>
-          </button>
+            Réserver
+          </Button>
         </div>
         <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
           {film.badge && <Badge label={film.badge} />}
