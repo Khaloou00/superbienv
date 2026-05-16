@@ -6,10 +6,10 @@ import { cloudinary } from '../utils/uploadCloud.js';
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const signAccess = (id) =>
-  jwt.sign({ id }, process.env.JWT_ACCESS_SECRET, { expiresIn: '15m' });
+  jwt.sign({ id }, process.env.JWT_ACCESS_SECRET, { expiresIn: '2d' });
 
 const signRefresh = (id, version) =>
-  jwt.sign({ id, v: version }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+  jwt.sign({ id, v: version }, process.env.JWT_REFRESH_SECRET, { expiresIn: '14d' });
 
 const isProd = process.env.NODE_ENV === 'production';
 const cookieOptions = {
