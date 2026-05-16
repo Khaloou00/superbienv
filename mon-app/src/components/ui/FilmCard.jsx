@@ -1,11 +1,32 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, Star } from 'lucide-react';
+import { Clock, Star, Heart } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { selectIsAuthenticated } from '../../store/slices/authSlice';
+import { useGetMeQuery } from '../../store/api/authApi';
+import { useToggleFavoriMutation } from '../../store/api/filmsApi';
 import Badge from './Badge';
 import Button from './Button';
+import toast from 'react-hot-toast';
 
 export default function FilmCard({ film }) {
   const navigate = useNavigate();
+  const isAuth = useSelector(selectIsAuthenticated);
+  const { data: meData } = useGetMeQuery(undefined, { skip: !isAuth });
+  const [toggleFavori] = useToggleFavoriMutation();
+
+  const isFav = meData?.user?.filmsFavoris?.some((f) => (f._id || f) === film._id);
+
+  const handleFav = async (e) => {
+    e.stopPropagation();
+    if (!isAuth) { navigate('/connexion'); return; }
+    try {
+      await toggleFavori(film._id).unwrap();
+      toast.success(isFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️');
+    } catch {
+      toast.error('Erreur');
+    }
+  };
 
   return (
     <motion.div
@@ -32,12 +53,20 @@ export default function FilmCard({ film }) {
           {film.badge && <Badge label={film.badge} />}
           <span className="glass text-xs font-label px-2 py-0.5 rounded text-white">{film.type}</span>
         </div>
-        {film.note > 0 && (
-          <div className="absolute top-3 right-3 glass flex items-center gap-1 px-2 py-1 rounded-lg">
-            <Star size={10} className="text-gold fill-gold" />
-            <span className="text-xs font-label text-white">{film.note}</span>
-          </div>
-        )}
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          {film.note > 0 && (
+            <div className="glass flex items-center gap-1 px-2 py-1 rounded-lg">
+              <Star size={10} className="text-gold fill-gold" />
+              <span className="text-xs font-label text-white">{film.note}</span>
+            </div>
+          )}
+          <button
+            onClick={handleFav}
+            className="glass w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+          >
+            <Heart size={14} className={isFav ? 'text-cinema fill-cinema' : 'text-white'} />
+          </button>
+        </div>
       </div>
       <div className="p-4">
         <p className="text-xs font-label text-gold uppercase tracking-wider mb-1">{film.genre}</p>

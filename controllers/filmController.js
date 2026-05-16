@@ -106,7 +106,7 @@ export const createFilm = async (req, res, next) => {
       filmData.seances = filmData.seances.map((s) => ({
         ...s,
         placesDisponibles:    s.placesTotal ?? 80,
-        placesVIPDisponibles: s.placesVIP   ?? 10,
+        placesVIPDisponibles: s.placesVIP   ?? 20,
       }));
     }
     const film = await Film.create(filmData);

@@ -1,17 +1,33 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, Star, Globe, Users, ArrowLeft, Calendar, Play, ChevronRight } from 'lucide-react';
-import { useGetFilmQuery } from '../store/api/filmsApi';
+import { Clock, Star, Globe, Users, ArrowLeft, Calendar, Play, ChevronRight, Heart } from 'lucide-react';
+import { useGetFilmQuery, useToggleFavoriMutation } from '../store/api/filmsApi';
+import { useGetMeQuery } from '../store/api/authApi';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '../store/slices/authSlice';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
+import toast from 'react-hot-toast';
 
 export default function FilmDetail() {
   const { filmId } = useParams();
   const navigate = useNavigate();
   const isAuth = useSelector(selectIsAuthenticated);
   const { data, isLoading } = useGetFilmQuery(filmId);
+  const { data: meData } = useGetMeQuery(undefined, { skip: !isAuth });
+  const [toggleFavori] = useToggleFavoriMutation();
+
+  const isFav = meData?.user?.filmsFavoris?.some((f) => (f._id || f) === filmId);
+
+  const handleFav = async () => {
+    if (!isAuth) { navigate('/connexion', { state: { from: `/film/${filmId}` } }); return; }
+    try {
+      await toggleFavori(filmId).unwrap();
+      toast.success(isFav ? 'Retiré des favoris' : 'Ajouté aux favoris ❤️');
+    } catch {
+      toast.error('Erreur');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -91,6 +107,17 @@ export default function FilmDetail() {
               Réserver ma place <ChevronRight size={16} />
             </Button>
           </Link>
+          <button
+            onClick={handleFav}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-sm font-label transition-all ${
+              isFav
+                ? 'border-cinema/40 bg-cinema/10 text-cinema hover:bg-cinema/20'
+                : 'border-white/10 bg-surface text-muted hover:text-white hover:border-white/30'
+            }`}
+          >
+            <Heart size={16} className={isFav ? 'fill-cinema' : ''} />
+            {isFav ? 'Dans mes favoris' : 'Ajouter aux favoris'}
+          </button>
           {nextSeance ? (
             <p className="text-sm text-muted font-label">
               Prochaine séance :{' '}

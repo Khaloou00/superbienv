@@ -1,5 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQueryWithReauth } from './baseApi';
+import { authApi } from './authApi';
 
 export const filmsApi = createApi({
   reducerPath: 'filmsApi',
@@ -28,7 +29,11 @@ export const filmsApi = createApi({
     }),
     toggleFavori: builder.mutation({
       query: (id) => ({ url: `/films/${id}/favoris`, method: 'POST' }),
-      invalidatesTags: ['Me'],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        // Invalider le cache getMe dans authApi (cross-API)
+        dispatch(authApi.util.invalidateTags(['Me']));
+      },
     }),
     addComment: builder.mutation({
       query: ({ id, ...body }) => ({ url: `/films/${id}/commentaires`, method: 'POST', body }),

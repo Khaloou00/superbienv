@@ -5,8 +5,8 @@ const seanceSchema = new mongoose.Schema({
   heure: { type: String, required: true },
   placesTotal: { type: Number, default: 80 },
   placesDisponibles: { type: Number, default: 80 },
-  placesVIP: { type: Number, default: 10 },
-  placesVIPDisponibles: { type: Number, default: 10 },
+  placesVIP: { type: Number, default: 20 },
+  placesVIPDisponibles: { type: Number, default: 20 },
 });
 
 const filmSchema = new mongoose.Schema(

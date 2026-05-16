@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { Ticket, Heart, Bell, User, ChevronRight, Clock, CheckCircle, XCircle } from 'lucide-react';
@@ -7,7 +8,7 @@ import toast from 'react-hot-toast';
 import { selectCurrentUser } from '../../store/slices/authSlice';
 import { useGetMesReservationsQuery, useAnnulerBookingMutation } from '../../store/api/bookingsApi';
 import { useGetMeQuery, useUpdateMeMutation } from '../../store/api/authApi';
-import { useAddCommentMutation } from '../../store/api/filmsApi';
+import { useAddCommentMutation, useToggleFavoriMutation } from '../../store/api/filmsApi';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import StarField from '../../components/ui/StarField';
@@ -27,12 +28,14 @@ const STATUS_CONFIG = {
 export default function MonEspace() {
   const [tab, setTab] = useState('reservations');
   const [expandedId, setExpandedId] = useState(null);
+  const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
   const { data: meData } = useGetMeQuery();
   const { data, isLoading } = useGetMesReservationsQuery();
   const [annuler, { isLoading: isAnnulant }] = useAnnulerBookingMutation();
   const [updateMe, { isLoading: isUpdatingProfile }] = useUpdateMeMutation();
   const [addComment, { isLoading: isCommenting }] = useAddCommentMutation();
+  const [toggleFavori] = useToggleFavoriMutation();
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ nom: '', telephone: '', idNumber: '' });
@@ -232,15 +235,35 @@ export default function MonEspace() {
           {meData?.user?.filmsFavoris?.length === 0 ? (
             <div className="text-center py-16">
               <Heart size={48} className="text-muted mx-auto mb-4" />
-              <p className="text-muted font-label">Aucun film en favoris.</p>
+              <p className="text-muted font-label mb-3">Aucun film en favoris.</p>
+              <a href="/programme" className="text-gold text-sm font-label hover:underline">Découvrir le programme →</a>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {meData?.user?.filmsFavoris?.map((film) => (
-                <div key={film._id} className="bg-surface rounded-xl overflow-hidden border border-white/5">
-                  <img src={film.poster} alt={film.titre} className="w-full aspect-[2/3] object-cover" />
+                <div
+                  key={film._id}
+                  className="bg-surface rounded-xl overflow-hidden border border-white/5 group cursor-pointer hover:border-gold/30 transition-all"
+                  onClick={() => navigate(`/film/${film._id}`)}
+                >
+                  <div className="relative">
+                    <img src={film.poster} alt={film.titre} className="w-full aspect-[2/3] object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await toggleFavori(film._id).unwrap();
+                          toast.success('Retiré des favoris');
+                        } catch { toast.error('Erreur'); }
+                      }}
+                      className="absolute top-2 right-2 glass w-8 h-8 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+                    >
+                      <Heart size={14} className="text-cinema fill-cinema" />
+                    </button>
+                  </div>
                   <div className="p-3">
                     <p className="text-sm font-label text-white line-clamp-1">{film.titre}</p>
+                    <p className="text-xs text-gold mt-1">{film.genre}</p>
                   </div>
                 </div>
               ))}
