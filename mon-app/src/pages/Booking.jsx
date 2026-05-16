@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -30,31 +30,56 @@ const PACKS = [
 ];
 
 const PAIEMENTS = [
-  { key: 'Wave', label: 'Wave CI', icon: '🌊' },
-  { key: 'OrangeMoney', label: 'Orange Money', icon: '🟠' },
-  { key: 'MTNMoMo', label: 'MTN MoMo', icon: '🟡' },
-  { key: 'Carte', label: 'Carte bancaire', icon: '💳' },
+  { key: 'Wave', label: 'Wave CI', iconUrl: '/images/payments/wave.png' },
+  { key: 'OrangeMoney', label: 'Orange Money', iconUrl: '/images/payments/orange.png' },
+  { key: 'MTNMoMo', label: 'MTN MoMo', iconUrl: '/images/payments/momo.png' },
+  { key: 'Carte', label: 'Carte bancaire', iconUrl: '/images/payments/carte.png' },
 ];
 
 export default function Booking() {
   const { filmId } = useParams();
   const navigate = useNavigate();
   const isAuth = useSelector(selectIsAuthenticated);
-  const [step, setStep] = useState(0);
-  const [selectedSeat, setSelectedSeat] = useState(null);
-  const [isVIP, setIsVIP] = useState(false);
-  const [selectedSeance, setSelectedSeance] = useState(null);
-  const [options, setOptions] = useState({});
-  const [paiementMethod, setPaiementMethod] = useState('Wave');
-  const [booking, setBooking] = useState(null);
+
+  const getInitialState = (key, defaultValue) => {
+    try {
+      const saved = sessionStorage.getItem(`booking_${filmId}_${key}`);
+      return saved !== null ? JSON.parse(saved) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  const [step, setStep] = useState(() => getInitialState('step', 0));
+  const [selectedSeat, setSelectedSeat] = useState(() => getInitialState('seat', null));
+  const [isVIP, setIsVIP] = useState(() => getInitialState('isVIP', false));
+  const [selectedSeance, setSelectedSeance] = useState(() => getInitialState('seance', null));
+  const [options, setOptions] = useState(() => getInitialState('options', {}));
+  const [paiementMethod, setPaiementMethod] = useState(() => getInitialState('payment', 'Wave'));
+  const [booking, setBooking] = useState(() => getInitialState('booking', null));
+
+  useEffect(() => { sessionStorage.setItem(`booking_${filmId}_step`, JSON.stringify(step)); }, [step, filmId]);
+  useEffect(() => { sessionStorage.setItem(`booking_${filmId}_seat`, JSON.stringify(selectedSeat)); }, [selectedSeat, filmId]);
+  useEffect(() => { sessionStorage.setItem(`booking_${filmId}_isVIP`, JSON.stringify(isVIP)); }, [isVIP, filmId]);
+  useEffect(() => { sessionStorage.setItem(`booking_${filmId}_seance`, JSON.stringify(selectedSeance)); }, [selectedSeance, filmId]);
+  useEffect(() => { sessionStorage.setItem(`booking_${filmId}_options`, JSON.stringify(options)); }, [options, filmId]);
+  useEffect(() => { sessionStorage.setItem(`booking_${filmId}_payment`, JSON.stringify(paiementMethod)); }, [paiementMethod, filmId]);
+  useEffect(() => { sessionStorage.setItem(`booking_${filmId}_booking`, JSON.stringify(booking)); }, [booking, filmId]);
 
   const { data: filmData, isLoading } = useGetFilmQuery(filmId);
   const [createBooking, { isLoading: isCreating }] = useCreateBookingMutation();
 
-  const { register, handleSubmit, formState: { errors }, getValues } = useForm({
+  const { register, handleSubmit, formState: { errors }, getValues, watch } = useForm({
     resolver: zodResolver(detailsSchema),
-    defaultValues: { nombrePersonnes: 2, immatriculation: '' },
+    defaultValues: getInitialState('form', { nombrePersonnes: 2, immatriculation: '' }),
   });
+
+  useEffect(() => {
+    const subscription = watch((value) => {
+      sessionStorage.setItem(`booking_${filmId}_form`, JSON.stringify(value));
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, filmId]);
 
   if (!isAuth) {
     navigate('/connexion', { state: { from: `/reservation/${filmId}` } });
@@ -248,7 +273,9 @@ export default function Booking() {
                         onClick={() => setPaiementMethod(p.key)}
                         className={`w-full flex items-center gap-4 p-3 sm:p-4 rounded-xl border transition-all ${paiementMethod === p.key ? 'border-gold bg-gold/10' : 'border-white/10 bg-surface hover:border-gold/30'}`}
                       >
-                        <span className="text-xl sm:text-2xl">{p.icon}</span>
+                        <div className="w-10 h-7 flex-shrink-0 flex items-center justify-center">
+                          <img src={p.iconUrl} alt={p.label} className="max-w-full max-h-full object-contain" />
+                        </div>
                         <span className="font-label text-sm text-white">{p.label}</span>
                         {paiementMethod === p.key && <Check size={16} className="text-gold ml-auto" />}
                       </button>
@@ -298,10 +325,16 @@ export default function Booking() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button variant="outline" onClick={() => navigate('/espace')}>
+                <Button variant="outline" onClick={() => {
+                  ['step', 'seat', 'isVIP', 'seance', 'options', 'payment', 'form', 'booking'].forEach(k => sessionStorage.removeItem(`booking_${filmId}_${k}`));
+                  navigate('/espace');
+                }}>
                   <QrCode size={16} /> Mes réservations
                 </Button>
-                <Button variant="primary" onClick={() => navigate('/programme')}>
+                <Button variant="primary" onClick={() => {
+                  ['step', 'seat', 'isVIP', 'seance', 'options', 'payment', 'form', 'booking'].forEach(k => sessionStorage.removeItem(`booking_${filmId}_${k}`));
+                  navigate('/programme');
+                }}>
                   Voir le programme
                 </Button>
               </div>
