@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Analytics } from '@vercel/analytics/react';
 const IS_VERCEL = typeof window !== 'undefined' && (window.location.hostname.endsWith('.vercel.app') || window.location.hostname === 'sperbienv.fun' || window.location.hostname === 'www.sperbienv.fun');
@@ -72,6 +73,10 @@ function StaffRoute({ children }) {
 
 export default function App() {
   const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
   const isHydrating = useAuthHydration();
   const noLayout = ['/connexion', '/inscription', '/mot-de-passe-oublie', '/verify-otp'].includes(location.pathname)
     || location.pathname.startsWith('/reset-password')

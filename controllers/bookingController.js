@@ -17,27 +17,43 @@ const PRIX = {
 // POST /api/bookings
 export const createBooking = async (req, res, next) => {
   const { filmId, seanceId, place, isVIP, immatriculation, nombrePersonnes, options, paiement } = req.body;
-  const placeField = isVIP ? 'placesVIPDisponibles' : 'placesDisponibles';
-  let seatDecremented = false;
 
   try {
-    // Atomic check-and-decrement: filter ensures ≥1 seat before decrementing.
-    // Single-document update is inherently atomic — no transaction needed.
-    const film = await Film.findOneAndUpdate(
-      { _id: filmId, seances: { $elemMatch: { _id: seanceId, [placeField]: { $gte: 1 } } } },
-      { $inc: { [`seances.$.${placeField}`]: -1 } },
-      { new: true }
-    );
-
+    const film = await Film.findById(filmId);
     if (!film) {
-      const exists = await Film.exists({ _id: filmId });
-      res.status(exists ? 400 : 404);
-      return next(new Error(
-        exists ? `Plus de places ${isVIP ? 'VIP ' : ''}disponibles` : 'Film ou séance introuvable'
-      ));
+      res.status(404);
+      return next(new Error('Film ou séance introuvable'));
     }
 
-    seatDecremented = true;
+    const seance = film.seances?.id(seanceId);
+    if (!seance) {
+      res.status(404);
+      return next(new Error('Séance introuvable'));
+    }
+
+    // Vérifier la disponibilité en comptant les réservations réelles
+    const activeBookings = await Booking.countDocuments({ seanceId, statut: { $ne: 'annulée' } });
+    const totalPlaces = seance.placesTotal ?? 80;
+    if (activeBookings >= totalPlaces) {
+      res.status(400);
+      return next(new Error('Plus de places disponibles'));
+    }
+
+    if (isVIP) {
+      const vipBookings = await Booking.countDocuments({ seanceId, isVIP: true, statut: { $ne: 'annulée' } });
+      const totalVIP = seance.placesVIP ?? 20;
+      if (vipBookings >= totalVIP) {
+        res.status(400);
+        return next(new Error('Plus de places VIP disponibles'));
+      }
+    }
+
+    // Vérifier que la place n'est pas déjà prise
+    const placeTaken = await Booking.exists({ seanceId, place, statut: { $ne: 'annulée' } });
+    if (placeTaken) {
+      res.status(400);
+      return next(new Error('Cette place est déjà réservée'));
+    }
 
     let montant = isVIP ? PRIX.vip : PRIX.standard;
     if (options?.packSnack)      montant += PRIX.packSnack;
@@ -59,7 +75,6 @@ export const createBooking = async (req, res, next) => {
     booking.qrCode = await generateQRCode(qrUrl);
     await booking.save();
 
-    const seance = film.seances?.find((s) => s._id.toString() === seanceId);
     const pdfBuffer = await generateTicketPdf({
       numero:       booking.numero,
       filmTitre:    film.titre,
@@ -83,13 +98,6 @@ export const createBooking = async (req, res, next) => {
 
     res.status(201).json({ success: true, booking });
   } catch (err) {
-    // Compensate: re-increment if seat was taken but booking creation failed
-    if (seatDecremented) {
-      Film.updateOne(
-        { _id: filmId, 'seances._id': seanceId },
-        { $inc: { [`seances.$.${placeField}`]: 1 } }
-      ).catch((e) => logger.error('Seat re-increment failed', { filmId, seanceId, err: e.message }));
-    }
     next(err);
   }
 };
@@ -121,6 +129,18 @@ export const getBooking = async (req, res, next) => {
       return next(new Error('Accès refusé'));
     }
     res.json({ success: true, booking });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/bookings/seance/:seanceId/seats
+export const getTakenSeats = async (req, res, next) => {
+  try {
+    const { seanceId } = req.params;
+    const bookings = await Booking.find({ seanceId, statut: { $ne: 'annulée' } }).select('place -_id');
+    const takenSeats = bookings.map((b) => b.place);
+    res.json({ success: true, takenSeats });
   } catch (err) {
     next(err);
   }

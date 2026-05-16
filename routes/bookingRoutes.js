@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   createBooking, getMesReservations, getBooking, annulerBooking,
   scanQR, getAllBookings, getStats, verifyBooking, scanBookingByNumero,
-  getStaffStats, getExpiredStats,
+  getStaffStats, getExpiredStats, getTakenSeats
 } from '../controllers/bookingController.js';
 import { protect, adminOnly, staffOrAdmin } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validate.js';
@@ -21,5 +21,6 @@ router.get('/verify/:numero', verifyBooking);
 router.patch('/verify/:numero/scan', protect, staffOrAdmin, scanBookingByNumero);
 router.get('/:id', protect, getBooking);
 router.put('/:id/annuler', protect, annulerBooking);
+router.get('/seance/:seanceId/seats', getTakenSeats);
 
 export default router;

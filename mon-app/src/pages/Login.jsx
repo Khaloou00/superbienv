@@ -67,7 +67,7 @@ export default function Login() {
 
         <p className="text-center text-muted text-sm mt-6">
           Pas encore de compte ?{' '}
-          <Link to="/inscription" className="text-gold hover:underline font-label">Créer un compte</Link>
+          <Link to="/inscription" state={{ from }} className="text-gold hover:underline font-label">Créer un compte</Link>
         </p>
       </motion.div>
     </div>

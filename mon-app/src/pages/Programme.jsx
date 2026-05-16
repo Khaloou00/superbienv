@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Filter, Search } from 'lucide-react';
 import { useGetFilmsQuery } from '../store/api/filmsApi';
@@ -8,11 +8,34 @@ import StarField from '../components/ui/StarField';
 const GENRES = ['Tous', 'Action', 'Comédie', 'Drame', 'Horreur', 'Romance', 'Thriller', 'Animation', 'Documentaire', 'Sport', 'Concert'];
 const TYPES = ['Tous', 'Film', 'Match', 'Événement', 'Concert'];
 
+const SK = 'programme_state';
+const load = () => { try { return JSON.parse(sessionStorage.getItem(SK) || '{}'); } catch { return {}; } };
+
 export default function Programme() {
-  const [genre, setGenre] = useState('');
-  const [type, setType] = useState('');
-  const [date, setDate] = useState('');
-  const [page, setPage] = useState(1);
+  const saved = load();
+  const [genre, setGenre] = useState(saved.genre || '');
+  const [type, setType] = useState(saved.type  || '');
+  const [date, setDate]   = useState(saved.date  || '');
+  const [page, setPage]   = useState(saved.page  || 1);
+
+  // Persiste les filtres à chaque changement
+  useEffect(() => {
+    const current = load();
+    sessionStorage.setItem(SK, JSON.stringify({ ...current, genre, type, date, page }));
+  }, [genre, type, date, page]);
+
+  // Restaure la position de scroll + la sauvegarde en temps réel
+  useEffect(() => {
+    const { scrollY } = load();
+    if (scrollY) requestAnimationFrame(() => window.scrollTo(0, scrollY));
+
+    const onScroll = () => {
+      const cur = load();
+      sessionStorage.setItem(SK, JSON.stringify({ ...cur, scrollY: window.scrollY }));
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const { data, isLoading, isFetching } = useGetFilmsQuery({
     ...(genre && { genre }),

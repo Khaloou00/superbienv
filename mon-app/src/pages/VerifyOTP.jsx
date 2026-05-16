@@ -16,6 +16,7 @@ export default function VerifyOTP() {
   const dispatch = useDispatch();
 
   const email = location.state?.email;
+  const from = location.state?.from || '/';
 
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const [countdown, setCountdown] = useState(COUNTDOWN);
@@ -69,7 +70,7 @@ export default function VerifyOTP() {
       const data = await verifyOtp({ email, otp }).unwrap();
       dispatch(setCredentials({ user: data.user, accessToken: data.accessToken }));
       toast.success('Compte vérifié ! Bienvenue sur SUPERBIENV');
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err) {
       toast.error(err.data?.message || 'Code incorrect');
       setDigits(['', '', '', '', '', '']);

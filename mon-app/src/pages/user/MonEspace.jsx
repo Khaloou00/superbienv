@@ -10,6 +10,7 @@ import { useGetMeQuery, useUpdateMeMutation } from '../../store/api/authApi';
 import { useAddCommentMutation } from '../../store/api/filmsApi';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import StarField from '../../components/ui/StarField';
 
 const TABS = [
   { id: 'reservations', label: 'Réservations', icon: Ticket },
@@ -85,11 +86,13 @@ export default function MonEspace() {
   };
 
   return (
-    <div className="pt-24 pb-16 px-4 min-h-screen max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="font-headline text-4xl font-bold mb-1">Mon Espace</h1>
-        <p className="text-muted font-label">Bonjour, {user?.nom?.split(' ')[0]} 👋</p>
-      </div>
+    <div className="min-h-screen relative">
+      <StarField count={100} />
+      <div className="pt-24 pb-16 px-4 max-w-4xl mx-auto relative z-10">
+        <div className="mb-8">
+          <h1 className="font-headline text-4xl font-bold mb-1">Mon Espace</h1>
+          <p className="text-muted font-label">Bonjour, {user?.nom?.split(' ')[0]} 👋</p>
+        </div>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-8 bg-surface rounded-xl p-1.5 w-fit">
@@ -297,6 +300,7 @@ export default function MonEspace() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

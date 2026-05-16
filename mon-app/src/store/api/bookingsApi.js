@@ -42,6 +42,10 @@ export const bookingsApi = createApi({
       query: (numero) => ({ url: `/bookings/verify/${numero}/scan`, method: 'PATCH' }),
       invalidatesTags: ['Bookings'],
     }),
+    getTakenSeats: builder.query({
+      query: (seanceId) => `/bookings/seance/${seanceId}/seats`,
+      providesTags: (result, error, arg) => [{ type: 'Bookings', id: `SEANCE_${arg}` }],
+    }),
   }),
 });
 
@@ -49,4 +53,5 @@ export const {
   useCreateBookingMutation, useGetMesReservationsQuery, useGetBookingQuery,
   useGetAllBookingsQuery, useGetStatsQuery, useAnnulerBookingMutation, useScanQRMutation,
   useGetStaffStatsQuery, useGetExpiredStatsQuery, useScanBookingByNumeroMutation,
+  useGetTakenSeatsQuery,
 } = bookingsApi;

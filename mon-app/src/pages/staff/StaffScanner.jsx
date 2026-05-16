@@ -6,6 +6,7 @@ import { QrCode, LogOut, Camera, X, CheckCircle, XCircle, RefreshCw, AlertTriang
 import { logout, selectCurrentUser } from '../../store/slices/authSlice';
 import { useGetStaffStatsQuery, useScanBookingByNumeroMutation } from '../../store/api/bookingsApi';
 import Button from '../../components/ui/Button';
+import StarField from '../../components/ui/StarField';
 import toast from 'react-hot-toast';
 
 const BASE = import.meta.env.VITE_API_URL ?? '';
@@ -118,7 +119,9 @@ export default function StaffScanner() {
   const cfg = scanResult ? (STATUT_CFG[scanResult.statut] ?? STATUT_CFG.annulée) : null;
 
   return (
-    <div className="min-h-screen bg-night text-white pb-8">
+    <div className="min-h-screen bg-night text-white pb-8 relative">
+      <StarField count={100} />
+      <div className="relative z-10">
       {/* Minimal staff header */}
       <div className="bg-surface border-b border-white/10 px-4 py-3 sticky top-0 z-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -313,6 +316,7 @@ export default function StaffScanner() {
               Aucun scan dans cette période
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

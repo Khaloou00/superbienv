@@ -22,7 +22,34 @@ export const getFilms = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
-    res.json({ success: true, total, page: Number(page), films });
+
+    // Calcul dynamique des places disponibles pour chaque film
+    const allSeanceIds = films.flatMap((f) => f.seances?.map((s) => s._id) || []);
+    const bookingCounts = allSeanceIds.length
+      ? await Booking.aggregate([
+          { $match: { seanceId: { $in: allSeanceIds }, statut: { $ne: 'annulée' } } },
+          { $group: { _id: { seanceId: '$seanceId', isVIP: '$isVIP' }, count: { $sum: 1 } } },
+        ])
+      : [];
+
+    const enrichedFilms = films.map((f) => {
+      const filmObj = f.toObject();
+      if (filmObj.seances?.length) {
+        filmObj.seances = filmObj.seances.map((s) => {
+          const normalCount = bookingCounts.find((b) => b._id.seanceId.toString() === s._id.toString() && !b._id.isVIP)?.count || 0;
+          const vipCount = bookingCounts.find((b) => b._id.seanceId.toString() === s._id.toString() && b._id.isVIP)?.count || 0;
+          const totalBookings = normalCount + vipCount;
+          return {
+            ...s,
+            placesDisponibles: Math.max(0, (s.placesTotal ?? 80) - totalBookings),
+            placesVIPDisponibles: Math.max(0, (s.placesVIP ?? 20) - vipCount),
+          };
+        });
+      }
+      return filmObj;
+    });
+
+    res.json({ success: true, total, page: Number(page), films: enrichedFilms });
   } catch (err) {
     next(err);
   }
@@ -36,6 +63,30 @@ export const getFilm = async (req, res, next) => {
       res.status(404);
       return next(new Error('Film introuvable'));
     }
+
+    // Calcul dynamique des places disponibles basé sur les réservations réelles
+    if (film.seances?.length) {
+      const seanceIds = film.seances.map((s) => s._id);
+      const bookingCounts = await Booking.aggregate([
+        { $match: { seanceId: { $in: seanceIds }, statut: { $ne: 'annulée' } } },
+        { $group: { _id: { seanceId: '$seanceId', isVIP: '$isVIP' }, count: { $sum: 1 } } },
+      ]);
+
+      const filmObj = film.toObject();
+      filmObj.seances = filmObj.seances.map((s) => {
+        const normalCount = bookingCounts.find((b) => b._id.seanceId.toString() === s._id.toString() && !b._id.isVIP)?.count || 0;
+        const vipCount = bookingCounts.find((b) => b._id.seanceId.toString() === s._id.toString() && b._id.isVIP)?.count || 0;
+        const totalBookings = normalCount + vipCount;
+        return {
+          ...s,
+          placesDisponibles: Math.max(0, (s.placesTotal ?? 80) - totalBookings),
+          placesVIPDisponibles: Math.max(0, (s.placesVIP ?? 20) - vipCount),
+        };
+      });
+
+      return res.json({ success: true, film: filmObj });
+    }
+
     res.json({ success: true, film });
   } catch (err) {
     next(err);

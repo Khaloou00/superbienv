@@ -33,7 +33,7 @@ export default function FilmDetail() {
   const youtubeId = film.trailerUrl?.match(/(?:youtu\.be\/|v=)([^&\s]+)/)?.[1];
   const upcomingSeances = film.seances?.filter((s) => new Date(s.date) >= new Date()) ?? [];
   const nextSeance = upcomingSeances.find((s) => s.placesDisponibles > 0);
-  const bookingPath = isAuth ? `/reservation/${film._id}` : '/connexion';
+  const bookingPath = `/reservation/${film._id}`;
 
   return (
     <div className="pt-16 min-h-screen">

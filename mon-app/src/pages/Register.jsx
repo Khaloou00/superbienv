@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,10 +25,12 @@ const schema = z.object({
 
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
   const isAuth = useSelector(selectIsAuthenticated);
   const [registerMutation, { isLoading }] = useRegisterMutation();
+  const from = location.state?.from || '/';
 
-  useEffect(() => { if (isAuth) navigate('/'); }, [isAuth, navigate]);
+  useEffect(() => { if (isAuth) navigate(from, { replace: true }); }, [isAuth, navigate, from]);
 
   const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) });
 
@@ -36,7 +38,7 @@ export default function Register() {
     try {
       await registerMutation(values).unwrap();
       toast.success('Code OTP envoyé à votre email !');
-      navigate('/verify-otp', { state: { email: values.email } });
+      navigate('/verify-otp', { state: { email: values.email, from } });
     } catch (err) {
       toast.error(err.data?.message || 'Erreur lors de l\'inscription');
     }
@@ -69,7 +71,7 @@ export default function Register() {
 
         <p className="text-center text-muted text-sm mt-6">
           Déjà un compte ?{' '}
-          <Link to="/connexion" className="text-gold hover:underline font-label">Se connecter</Link>
+          <Link to="/connexion" state={{ from }} className="text-gold hover:underline font-label">Se connecter</Link>
         </p>
       </motion.div>
     </div>

@@ -8,7 +8,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { Check, ChevronRight, Car, Users, Package, CreditCard, QrCode } from 'lucide-react';
 import { useGetFilmQuery } from '../store/api/filmsApi';
-import { useCreateBookingMutation } from '../store/api/bookingsApi';
+import { useCreateBookingMutation, useGetTakenSeatsQuery } from '../store/api/bookingsApi';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '../store/slices/authSlice';
 import DriveInMap from '../components/booking/DriveInMap';
@@ -66,7 +66,8 @@ export default function Booking() {
   useEffect(() => { sessionStorage.setItem(`booking_${filmId}_payment`, JSON.stringify(paiementMethod)); }, [paiementMethod, filmId]);
   useEffect(() => { sessionStorage.setItem(`booking_${filmId}_booking`, JSON.stringify(booking)); }, [booking, filmId]);
 
-  const { data: filmData, isLoading } = useGetFilmQuery(filmId);
+  const { data: filmData, isLoading, refetch: refetchFilm } = useGetFilmQuery(filmId);
+  const { data: takenSeatsData } = useGetTakenSeatsQuery(selectedSeance, { skip: !selectedSeance });
   const [createBooking, { isLoading: isCreating }] = useCreateBookingMutation();
 
   const { register, handleSubmit, formState: { errors }, getValues, watch } = useForm({
@@ -114,6 +115,7 @@ export default function Booking() {
         options,
         paiement: { methode: paiementMethod, montant: total },
       }).unwrap();
+      refetchFilm();
       setBooking(res.booking);
       setStep(3);
       toast.success('Réservation confirmée !');
@@ -123,8 +125,14 @@ export default function Booking() {
   };
 
   return (
-    <div className="pt-24 pb-16 px-4 min-h-screen">
-      <div className="max-w-4xl mx-auto">
+    <div className="pt-24 pb-16 px-4 min-h-screen relative">
+      {/* Fond d'écran du film */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <img src={film.poster} alt="" className="w-full h-full object-cover opacity-30 blur-sm" />
+        <div className="absolute inset-0 bg-night/80" />
+      </div>
+
+      <div className="max-w-4xl mx-auto relative z-10">
         {/* Progress */}
         <div className="flex items-center justify-center gap-2 mb-12">
           {STEPS.map((s, i) => (
@@ -166,7 +174,7 @@ export default function Booking() {
               {selectedSeance && (
                 <>
                   <DriveInMap
-                    takenSeats={[]}
+                    takenSeats={takenSeatsData?.takenSeats || []}
                     selected={selectedSeat}
                     onSelect={handleSeatSelect}
                   />

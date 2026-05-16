@@ -6,6 +6,7 @@ import { useLoginMutation } from '../../store/api/authApi';
 import { setCredentials } from '../../store/slices/authSlice';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import StarField from '../../components/ui/StarField';
 
 export default function StaffLogin() {
   const navigate = useNavigate();
@@ -33,8 +34,9 @@ export default function StaffLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-night flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-night flex items-center justify-center p-4 relative">
+      <StarField count={100} />
+      <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center mx-auto mb-3">
             <QrCode size={24} className="text-gold" />
