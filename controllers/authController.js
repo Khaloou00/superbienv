@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 import User from '../models/User.js';
-import { sendEmail, otpEmail } from '../utils/sendEmail.js';
+import { sendEmail, otpEmail, resetPasswordEmail } from '../utils/sendEmail.js';
 import { cloudinary } from '../utils/uploadCloud.js';
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -226,40 +225,42 @@ export const updateMe = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const user = await User.findOne({ email: req.body.email });
-    if (!user) return res.json({ success: true, message: 'Email envoyé si le compte existe' });
-    const resetToken = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+    if (!user || !user.isVerified) {
+      return res.json({ success: true, message: 'Si ce compte existe, un code a été envoyé à votre email.' });
+    }
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-    await sendEmail({
-      to: user.email,
-      subject: 'Réinitialisation de mot de passe — SUPERBIENV',
-      html: `<p>Cliquez <a href="${resetUrl}">ici</a> pour réinitialiser votre mot de passe. Valable 10 minutes.</p>`,
-    });
-    res.json({ success: true, message: 'Email envoyé' });
+    await sendEmail({ to: user.email, ...resetPasswordEmail(user, otp) });
+    res.json({ success: true, message: 'Code envoyé à votre adresse email.' });
   } catch (err) {
     next(err);
   }
 };
 
-// PUT /api/auth/reset-password/:token
+// POST /api/auth/reset-password
 export const resetPassword = async (req, res, next) => {
   try {
-    const hashed = crypto.createHash('sha256').update(req.params.token).digest('hex');
-    const user = await User.findOne({
-      resetPasswordToken: hashed,
-      resetPasswordExpire: { $gt: Date.now() },
-    });
-    if (!user) {
+    const { email, otp, password } = req.body;
+    const user = await User.findOne({ email }).select('+otp +otpExpire +password');
+    if (!user || !user.otp || !user.otpExpire) {
       res.status(400);
-      return next(new Error('Token invalide ou expiré'));
+      return next(new Error('Code invalide ou expiré'));
     }
-    user.password = req.body.password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
+    if (user.otpExpire < new Date()) {
+      res.status(400);
+      return next(new Error('Code expiré. Faites une nouvelle demande.'));
+    }
+    if (user.otp !== otp) {
+      res.status(400);
+      return next(new Error('Code OTP incorrect'));
+    }
+    user.password = password;
+    user.otp = undefined;
+    user.otpExpire = undefined;
     await user.save();
-    res.json({ success: true, message: 'Mot de passe réinitialisé' });
+    res.json({ success: true, message: 'Mot de passe réinitialisé avec succès.' });
   } catch (err) {
     next(err);
   }

@@ -31,7 +31,7 @@ const baseFilmSchema = z.object({
   age: z.string().max(20).optional(),
   note: z.coerce.number().min(0).max(10).optional(),
   badge: z.enum(BADGES).optional(),
-  trailerUrl: z.string().url('URL invalide').optional().or(z.literal('')),
+  trailerUrl: z.string().url({ message: 'URL invalide' }).optional().or(z.literal('')),
   seances: parseJSON(z.array(seanceSchema)).optional(),
   casting: parseJSON(z.array(z.string())).optional(),
 });

@@ -19,7 +19,7 @@ router.post('/login', validate(loginSchema), login);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
 router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
-router.put('/reset-password/:token', validate(resetPasswordSchema), resetPassword);
+router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 router.get('/me', protect, getMe);
 router.put('/me', protect, upload.single('avatar'), validate(updateMeSchema), updateMe);
 

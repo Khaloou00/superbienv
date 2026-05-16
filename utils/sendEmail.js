@@ -36,6 +36,26 @@ export const otpEmail = (user, otp) => ({
   `,
 });
 
+export const resetPasswordEmail = (user, otp) => ({
+  subject: 'Réinitialisation de mot de passe — SUPERBIENV',
+  html: `
+    <div style="background:#0a0a0a;color:#fff;padding:32px;font-family:Inter,sans-serif;max-width:600px;margin:0 auto;border-radius:12px">
+      <h1 style="color:#F5C518;margin-bottom:8px;text-align:center">SUPERBIENV Drive-In</h1>
+      <p style="color:#A0A0A0;text-align:center;margin-top:0">Vivez le cinéma autrement</p>
+      <hr style="border-color:#222;margin:24px 0"/>
+      <h2 style="color:#fff">Bonjour ${user.nom},</h2>
+      <p>Vous avez demandé la réinitialisation de votre mot de passe. Utilisez ce code — valable <strong>10 minutes</strong>.</p>
+      <div style="background:#141414;border-radius:12px;padding:28px;margin:24px 0;text-align:center">
+        <p style="color:#A0A0A0;font-size:12px;margin:0 0 12px">VOTRE CODE DE RÉINITIALISATION</p>
+        <span style="font-size:42px;font-weight:bold;letter-spacing:16px;color:#F5C518">${otp}</span>
+      </div>
+      <p style="color:#A0A0A0;font-size:13px">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre mot de passe reste inchangé.</p>
+      <hr style="border-color:#222;margin:24px 0"/>
+      <p style="color:#A0A0A0;font-size:12px;text-align:center">SUPERBIENV — Abidjan, Côte d'Ivoire</p>
+    </div>
+  `,
+});
+
 export const bookingConfirmationEmail = (booking, film, user) => ({
   subject: `Confirmation de réservation — ${film.titre}`,
   html: `

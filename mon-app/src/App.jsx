@@ -18,6 +18,7 @@ import FilmDetail from './pages/FilmDetail';
 import EventDetail from './pages/EventDetail';
 import VerifyOTP from './pages/VerifyOTP';
 import VerifyBooking from './pages/VerifyBooking';
+import ForgotPassword from './pages/ForgotPassword';
 import StaffLogin from './pages/staff/StaffLogin';
 import StaffScanner from './pages/staff/StaffScanner';
 
@@ -99,6 +100,7 @@ export default function App() {
         <Route path="/connexion" element={<PageWrapper><Login /></PageWrapper>} />
         <Route path="/inscription" element={<PageWrapper><Register /></PageWrapper>} />
         <Route path="/verify-otp" element={<PageWrapper><VerifyOTP /></PageWrapper>} />
+        <Route path="/mot-de-passe-oublie" element={<PageWrapper><ForgotPassword /></PageWrapper>} />
         <Route path="/verify/:numero" element={<VerifyBooking />} />
         <Route path="/staff/login" element={<StaffLogin />} />
         <Route
