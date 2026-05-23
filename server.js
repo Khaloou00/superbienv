@@ -1,3 +1,77 @@
+// import 'dotenv/config';
+// import express from 'express';
+// import cookieParser from 'cookie-parser';
+// import cors from 'cors';
+// import helmet from 'helmet';
+// import morgan from 'morgan';
+// import rateLimit from 'express-rate-limit';
+// import mongoSanitize from 'express-mongo-sanitize';
+// import hpp from 'hpp';
+
+// import connectDB from './config/db.js';
+// import authRoutes from './routes/authRoutes.js';
+// import filmRoutes from './routes/filmRoutes.js';
+// import bookingRoutes from './routes/bookingRoutes.js';
+// import eventRoutes from './routes/eventRoutes.js';
+// import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
+
+// connectDB();
+
+// const app = express();
+// app.set('trust proxy', 1);
+
+// app.use(helmet());
+// const allowedOrigins = [
+//   'http://localhost:5173',
+//   'https://superbienv.vercel.app',
+//   'https://sperbienv.fun',
+//   'https://www.sperbienv.fun',
+//   process.env.FRONTEND_URL,
+// ].filter(Boolean);
+
+// app.use(cors({
+//   origin: (origin, cb) => {
+//     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+//     cb(new Error(`CORS: origin not allowed — ${origin}`));
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+// }));
+// app.use(express.json({ limit: '10kb' }));
+// app.use(cookieParser());
+// app.use(mongoSanitize());
+// app.use(hpp());
+// if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
+
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 100,
+//   message: 'Trop de requêtes depuis cette IP, réessayez dans 15 minutes.',
+// });
+// app.use('/api', limiter);
+
+// const authLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 100,
+//   message: 'Trop de tentatives de connexion, réessayez dans 15 minutes.',
+// });
+// app.use('/api/auth', authLimiter);
+
+// app.use('/api/auth', authRoutes);
+// app.use('/api/films', filmRoutes);
+// app.use('/api/bookings', bookingRoutes);
+// app.use('/api/events', eventRoutes);
+
+// app.get('/api/health', (req, res) => res.json({ status: 'OK', env: process.env.NODE_ENV }));
+
+// app.use(notFound);
+// app.use(errorHandler);
+
+// const PORT = process.env.PORT || 8000;
+// app.listen(PORT, () => console.log(`🎬 SUPERBIENV API running on port ${PORT} [${process.env.NODE_ENV}]`));
+
+
 import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -15,12 +89,29 @@ import bookingRoutes from './routes/bookingRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 
-connectDB();
+// ✅ Crash handlers AVANT tout le reste
+process.on('uncaughtException', (err) => {
+  console.error('💥 UNCAUGHT EXCEPTION:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('💥 UNHANDLED REJECTION:', reason);
+  process.exit(1);
+});
 
 const app = express();
 app.set('trust proxy', 1);
 
+// ✅ Health check EN PREMIER — avant tout middleware lourd
+// Render ping cette route pour vérifier que le service est up
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', env: process.env.NODE_ENV, ts: Date.now() });
+});
+
 app.use(helmet());
+
 const allowedOrigins = [
   'http://localhost:5173',
   'https://superbienv.vercel.app',
@@ -29,44 +120,71 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    console.warn(`[CORS] Blocked origin: ${origin}`); // visible dans les logs Render
     cb(new Error(`CORS: origin not allowed — ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // ✅ preflight explicite pour toutes les routes
+
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(hpp());
-if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
 
+if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'));
+
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
   message: 'Trop de requêtes depuis cette IP, réessayez dans 15 minutes.',
 });
 app.use('/api', limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 20, // ✅ réduit : 100 tentatives auth c'est trop permissif
+  standardHeaders: true,
+  legacyHeaders: false,
   message: 'Trop de tentatives de connexion, réessayez dans 15 minutes.',
 });
 app.use('/api/auth', authLimiter);
 
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/films', filmRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/events', eventRoutes);
 
-app.get('/api/health', (req, res) => res.json({ status: 'OK', env: process.env.NODE_ENV }));
-
 app.use(notFound);
 app.use(errorHandler);
 
+// ✅ Démarrage avec await connectDB + gestion d'erreur explicite
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => console.log(`🎬 SUPERBIENV API running on port ${PORT} [${process.env.NODE_ENV}]`));
+
+const startServer = async () => {
+  try {
+    await connectDB(); // ✅ await + dans un try/catch
+    console.log('✅ MongoDB connected');
+
+    app.listen(PORT, () => {
+      console.log(`🎬 SUPERBIENV API running on port ${PORT} [${process.env.NODE_ENV}]`);
+      console.log(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
+    });
+  } catch (err) {
+    console.error('❌ Failed to connect to MongoDB:', err.message);
+    process.exit(1); // ✅ Render redémarre automatiquement
+  }
+};
+
+startServer();
