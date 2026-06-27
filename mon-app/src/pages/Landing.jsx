@@ -6,7 +6,7 @@ import StarField from '../components/ui/StarField';
 import Button from '../components/ui/Button';
 import { useGetFilmsQuery } from '../store/api/filmsApi';
 import FilmCard from '../components/ui/FilmCard';
-import image from '../../dist/assets/premier.jpeg'
+import image from '../assets/premier.jpeg'
 
 const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
