@@ -186,5 +186,13 @@ const startServer = async () => {
     process.exit(1); // ✅ Render redémarre automatiquement
   }
 };
+// Tout en haut de server.js, AVANT les imports
+console.log('=== ENV CHECK ===');
+console.log('MONGO_URI:', process.env.MONGO_URI ? '✅ présent' : '❌ MANQUANT');
+console.log('JWT_ACCESS_SECRET:', process.env.JWT_ACCESS_SECRET ? '✅ présent' : '❌ MANQUANT');
+console.log('JWT_REFRESH_SECRET:', process.env.JWT_REFRESH_SECRET ? '✅ présent' : '❌ MANQUANT');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('=================');
 
 startServer();

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Booking from '../models/Booking.js';
 import Film from '../models/Film.js';
 import { generateQRCode } from '../utils/generateQR.js';
@@ -291,6 +292,123 @@ export const getExpiredStats = async (req, res, next) => {
       ticketsNonUtilisesExpires: expiredRaw.length,
       montantPerdu,
       detailExpires: expiredRaw,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/bookings/stats/analytics — admin only
+// KPIs filtrables (période, film, statut) pour comprendre l'évolution des réservations.
+export const getBookingAnalytics = async (req, res, next) => {
+  try {
+    const { from, to, filmId, statut } = req.query;
+
+    const match = {};
+    if (statut) match.statut = statut;
+    if (filmId && mongoose.isValidObjectId(filmId)) {
+      match.filmId = new mongoose.Types.ObjectId(filmId);
+    }
+    if (from || to) {
+      match.createdAt = {};
+      if (from) { const d = new Date(from); d.setHours(0, 0, 0, 0);     match.createdAt.$gte = d; }
+      if (to)   { const d = new Date(to);   d.setHours(23, 59, 59, 999); match.createdAt.$lte = d; }
+    }
+
+    // Le CA ignore les réservations annulées
+    const caCond = { $cond: [{ $ne: ['$statut', 'annulée'] }, '$paiement.montant', 0] };
+    const matchHorsAnnulees = { ...match, statut: match.statut || { $ne: 'annulée' } };
+
+    const [kpiAgg, timeseries, parMethode, topFilms, parSeance] = await Promise.all([
+      // KPIs globaux
+      Booking.aggregate([
+        { $match: match },
+        { $group: {
+          _id: null,
+          nbReservations:  { $sum: 1 },
+          ca:              { $sum: caCond },
+          billetsActifs:   { $sum: { $cond: [{ $eq: ['$statut', 'active'] }, 1, 0] } },
+          billetsUtilises: { $sum: { $cond: [{ $eq: ['$statut', 'utilisée'] }, 1, 0] } },
+          billetsAnnules:  { $sum: { $cond: [{ $eq: ['$statut', 'annulée'] }, 1, 0] } },
+          personnes:       { $sum: '$nombrePersonnes' },
+        }},
+      ]),
+      // Évolution par jour (CA + nombre de réservations)
+      Booking.aggregate([
+        { $match: match },
+        { $group: {
+          _id:   { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          ca:    { $sum: caCond },
+          count: { $sum: 1 },
+        }},
+        { $sort: { _id: 1 } },
+      ]),
+      // Répartition par méthode de paiement
+      Booking.aggregate([
+        { $match: matchHorsAnnulees },
+        { $group: { _id: '$paiement.methode', count: { $sum: 1 }, ca: { $sum: '$paiement.montant' } } },
+        { $sort: { ca: -1 } },
+      ]),
+      // Top films (par CA)
+      Booking.aggregate([
+        { $match: matchHorsAnnulees },
+        { $group: { _id: '$filmId', count: { $sum: 1 }, ca: { $sum: '$paiement.montant' } } },
+        { $sort: { ca: -1 } },
+        { $limit: 8 },
+        { $lookup: { from: 'films', localField: '_id', foreignField: '_id', as: 'film' } },
+        { $unwind: '$film' },
+        { $project: { _id: 1, count: 1, ca: 1, titre: '$film.titre', poster: '$film.poster' } },
+      ]),
+      // Stats par séance (taux de remplissage)
+      Booking.aggregate([
+        { $match: matchHorsAnnulees },
+        { $group: {
+          _id:     { filmId: '$filmId', seanceId: '$seanceId' },
+          vendues: { $sum: 1 },
+          vip:     { $sum: { $cond: ['$isVIP', 1, 0] } },
+          ca:      { $sum: '$paiement.montant' },
+        }},
+        { $lookup: { from: 'films', localField: '_id.filmId', foreignField: '_id', as: 'film' } },
+        { $unwind: '$film' },
+        { $unwind: '$film.seances' },
+        { $match: { $expr: { $eq: ['$_id.seanceId', '$film.seances._id'] } } },
+        { $project: {
+          _id: 0,
+          filmId:   '$_id.filmId',
+          seanceId: '$_id.seanceId',
+          titre:    '$film.titre',
+          date:     '$film.seances.date',
+          heure:    '$film.seances.heure',
+          placesTotal: { $ifNull: ['$film.seances.placesTotal', 80] },
+          vendues: 1,
+          vip: 1,
+          ca: 1,
+          remplissage: {
+            $round: [{ $multiply: [{ $divide: ['$vendues', { $ifNull: ['$film.seances.placesTotal', 80] }] }, 100] }, 0],
+          },
+        }},
+        { $sort: { date: -1 } },
+      ]),
+    ]);
+
+    const kpi = kpiAgg[0] || {
+      nbReservations: 0, ca: 0, billetsActifs: 0,
+      billetsUtilises: 0, billetsAnnules: 0, personnes: 0,
+    };
+    delete kpi._id;
+
+    // Taux de remplissage global (sur les séances ayant eu de l'activité)
+    const totVendues = parSeance.reduce((s, x) => s + x.vendues, 0);
+    const totPlaces  = parSeance.reduce((s, x) => s + x.placesTotal, 0);
+    kpi.remplissageGlobal = totPlaces ? Math.round((totVendues / totPlaces) * 100) : 0;
+
+    res.json({
+      success: true,
+      kpi,
+      timeseries: timeseries.map((t) => ({ date: t._id, ca: t.ca, count: t.count })),
+      parMethode: parMethode.map((m) => ({ methode: m._id || 'Inconnu', count: m.count, ca: m.ca })),
+      topFilms,
+      parSeance,
     });
   } catch (err) {
     next(err);

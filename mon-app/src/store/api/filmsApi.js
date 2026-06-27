@@ -27,6 +27,10 @@ export const filmsApi = createApi({
       query: (id) => ({ url: `/films/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Films'],
     }),
+    reprogrammerFilm: builder.mutation({
+      query: ({ id, seances }) => ({ url: `/films/${id}/reprogrammer`, method: 'POST', body: { seances } }),
+      invalidatesTags: ['Films'],
+    }),
     toggleFavori: builder.mutation({
       query: (id) => ({ url: `/films/${id}/favoris`, method: 'POST' }),
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
@@ -45,5 +49,5 @@ export const filmsApi = createApi({
 export const {
   useGetFilmsQuery, useGetFilmQuery, useCreateFilmMutation,
   useUpdateFilmMutation, useDeleteFilmMutation, useToggleFavoriMutation,
-  useAddCommentMutation,
+  useAddCommentMutation, useReprogrammerFilmMutation,
 } = filmsApi;

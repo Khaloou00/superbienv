@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import {
   LayoutDashboard, Film, Ticket, QrCode, TrendingUp, Car,
   CalendarDays, Plus, X, ImagePlus, AlertTriangle, ChevronDown, ChevronUp,
+  History, BarChart3,
 } from 'lucide-react';
 import { useGetStatsQuery, useGetAllBookingsQuery, useScanQRMutation, useGetExpiredStatsQuery } from '../../store/api/bookingsApi';
 import { useGetFilmsQuery, useDeleteFilmMutation, useCreateFilmMutation, useUpdateFilmMutation } from '../../store/api/filmsApi';
@@ -11,20 +12,24 @@ import { useGetEventsQuery, useCreateEventMutation, useDeleteEventMutation, useU
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import HistoriqueFilms from './HistoriqueFilms';
+import BookingAnalytics from './BookingAnalytics';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: 'overview',  label: 'Vue d\'ensemble', icon: LayoutDashboard },
-  { id: 'films',     label: 'Films',            icon: Film },
-  { id: 'events',    label: 'Événements',       icon: CalendarDays },
-  { id: 'bookings',  label: 'Réservations',     icon: Ticket },
-  { id: 'scanner',   label: 'Scanner QR',       icon: QrCode },
+  { id: 'overview',   label: 'Vue d\'ensemble',     icon: LayoutDashboard },
+  { id: 'films',      label: 'Films',                icon: Film },
+  { id: 'historique', label: 'Historiques',          icon: History },
+  { id: 'events',     label: 'Événements',           icon: CalendarDays },
+  { id: 'bookings',   label: 'Réservations',         icon: Ticket },
+  { id: 'analytics',  label: 'Statistiques',         icon: BarChart3 },
+  { id: 'scanner',    label: 'Scanner QR',           icon: QrCode },
 ];
 
 const FILM_GENRES = ['Action', 'Comédie', 'Drame', 'Horreur', 'Romance', 'Thriller', 'Animation', 'Documentaire', 'Sport', 'Concert', 'Événement', 'Science-Fiction', 'Fantastique', 'Aventure', 'Comédie Musicale', 'Guerre'];
 const FILM_TYPES  = ['Film', 'Match', 'Événement', 'Concert'];
-const FILM_BADGES = ['', 'NOUVEAU', 'CE SOIR', 'COMPLET', 'VIP'];
+const FILM_BADGES = ['', 'NOUVEAU', 'CE SOIR', 'COMPLET', 'VIP', 'BEST-SELLER', '3D', 'OSCAR', 'PALME', 'FAMILLE', 'ACTION', 'HORREUR', 'COUP DE COEUR', 'LÉGENDE', 'PALME + OSCAR'];
 const EVENT_TYPES = ['Soirée corpo', 'Anniversaire', 'Mariage', 'Match', 'Concert', 'Autre'];
 
 
@@ -108,7 +113,7 @@ export default function AdminDashboard() {
   const { data: stats }        = useGetStatsQuery();
   const { data: expiredData }  = useGetExpiredStatsQuery();
   const { data: bookingsData } = useGetAllBookingsQuery({ limit: 10 });
-  const { data: filmsData }    = useGetFilmsQuery({ limit: 50 });
+  const { data: filmsData }    = useGetFilmsQuery({ limit: 50, scope: 'all' });
   const { data: eventsData }   = useGetEventsQuery();
 
   const [deleteFilm]                       = useDeleteFilmMutation();
@@ -521,6 +526,9 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ── HISTORIQUE FILMS ── */}
+        {tab === 'historique' && <HistoriqueFilms />}
+
         {/* ── EVENTS ── */}
         {tab === 'events' && (
           <div>
@@ -647,6 +655,9 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* ── ANALYTICS / STATISTIQUES ── */}
+        {tab === 'analytics' && <BookingAnalytics />}
 
         {/* ── SCANNER ── */}
         {tab === 'scanner' && (

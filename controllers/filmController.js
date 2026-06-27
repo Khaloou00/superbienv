@@ -7,7 +7,7 @@ import logger from '../utils/logger.js';
 // GET /api/films
 export const getFilms = async (req, res, next) => {
   try {
-    const { genre, type, date, page = 1, limit = 12 } = req.query;
+    const { genre, type, date, page = 1, limit = 12, scope = 'public' } = req.query;
     const filter = { isActive: true };
     if (genre) filter.genre = genre;
     if (type) filter.type = type;
@@ -17,6 +17,20 @@ export const getFilms = async (req, res, next) => {
       end.setDate(end.getDate() + 1);
       filter['seances.date'] = { $gte: start, $lt: end };
     }
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    // scope=public : films ayant au moins une séance à venir (les films 100% passés sont masqués)
+    // scope=past   : films dont TOUTES les séances sont passées (onglet Historiques admin)
+    // scope=all    : tous les films sans filtre de date (gestion admin)
+    if (scope === 'public') {
+      filter.seances = { $elemMatch: { date: { $gte: todayStart } } };
+    } else if (scope === 'past') {
+      filter['seances.0'] = { $exists: true };
+      filter.seances = { $not: { $elemMatch: { date: { $gte: todayStart } } } };
+    }
+
     const total = await Film.countDocuments(filter);
     const films = await Film.find(filter)
       .sort({ createdAt: -1 })
@@ -45,6 +59,10 @@ export const getFilms = async (req, res, next) => {
             placesVIPDisponibles: Math.max(0, (s.placesVIP ?? 20) - vipCount),
           };
         });
+        // Le public ne voit jamais les séances passées (conservées en base pour l'historique)
+        if (scope === 'public') {
+          filmObj.seances = filmObj.seances.filter((s) => new Date(s.date) >= todayStart);
+        }
       }
       return filmObj;
     });
@@ -58,11 +76,15 @@ export const getFilms = async (req, res, next) => {
 // GET /api/films/:id
 export const getFilm = async (req, res, next) => {
   try {
+    const { scope = 'public' } = req.query;
     const film = await Film.findById(req.params.id);
     if (!film) {
       res.status(404);
       return next(new Error('Film introuvable'));
     }
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
     // Calcul dynamique des places disponibles basé sur les réservations réelles
     if (film.seances?.length) {
@@ -83,6 +105,11 @@ export const getFilm = async (req, res, next) => {
           placesVIPDisponibles: Math.max(0, (s.placesVIP ?? 20) - vipCount),
         };
       });
+
+      // Le public ne voit que les séances à venir (historique conservé côté admin)
+      if (scope === 'public') {
+        filmObj.seances = filmObj.seances.filter((s) => new Date(s.date) >= todayStart);
+      }
 
       return res.json({ success: true, film: filmObj });
     }
@@ -220,8 +247,52 @@ export const addComment = async (req, res, next) => {
     film.commentaires.push({ userId: req.user._id, texte, note: Number(note) || 0 });
     await film.save();
     await film.populate('commentaires.userId', 'nom avatar');
-    
+
     res.status(201).json({ success: true, commentaires: film.commentaires });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/films/:id/reprogrammer — admin
+// Réaffiche un film passé en lui ajoutant de nouvelles séances.
+// Les anciennes séances sont conservées (historique) ; seules les nouvelles
+// dates apparaîtront au public puisque getFilms/getFilm masquent les séances passées.
+export const reprogrammerFilm = async (req, res, next) => {
+  try {
+    const film = await Film.findById(req.params.id);
+    if (!film) {
+      res.status(404);
+      return next(new Error('Film introuvable'));
+    }
+
+    const { seances } = req.body;
+    const valides = (Array.isArray(seances) ? seances : []).filter((s) => s?.date && s?.heure);
+    if (!valides.length) {
+      res.status(400);
+      return next(new Error('Au moins une nouvelle séance (date + heure) est requise'));
+    }
+
+    const nouvelles = valides.map((s) => ({
+      date: s.date,
+      heure: s.heure,
+      placesTotal: Number(s.placesTotal) || 80,
+      placesDisponibles: Number(s.placesTotal) || 80,
+      placesVIP: Number(s.placesVIP) || 20,
+      placesVIPDisponibles: Number(s.placesVIP) || 20,
+    }));
+
+    film.seances.push(...nouvelles);
+    film.isActive = true; // réaffiche le film au programme
+    await film.save();
+
+    logger.info('Film reprogrammé', {
+      filmId: film._id,
+      titre: film.titre,
+      nouvellesSeances: nouvelles.length,
+    });
+
+    res.json({ success: true, film });
   } catch (err) {
     next(err);
   }

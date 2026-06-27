@@ -28,7 +28,7 @@ const filmSchema = new mongoose.Schema(
     age: { type: String, default: 'Tout public' },
     type: { type: String, enum: ['Film', 'Match', 'Événement', 'Concert'], default: 'Film' },
     seances: [seanceSchema],
-    badge: { type: String, enum: ['NOUVEAU', 'CE SOIR', 'COMPLET', 'VIP', ''], default: '' },
+    badge: { type: String, default: '' },
     isActive: { type: Boolean, default: true },
     trailerUrl: { type: String },
     commentaires: [{

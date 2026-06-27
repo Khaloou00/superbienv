@@ -6,6 +6,7 @@ import StarField from '../components/ui/StarField';
 import Button from '../components/ui/Button';
 import { useGetFilmsQuery } from '../store/api/filmsApi';
 import FilmCard from '../components/ui/FilmCard';
+import image from '../../dist/assets/premier.jpeg'
 
 const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
@@ -90,7 +91,7 @@ export default function Landing() {
             transition={{ duration: 0.7 }}
           >
             <span className="font-label text-gold text-sm tracking-widest uppercase mb-3 block">À propos</span>
-            <h2 className="font-headline text-4xl font-bold mb-6">Plus qu'un cinéma.<br/>Une expérience de vie.</h2>
+            <h2 className="font-headline text-4xl font-bold mb-6">Plus qu'un cinéma.<br />Une expérience de vie.</h2>
             <p className="text-muted leading-relaxed mb-6">
               SUPERBIENV Drive-In Cinéma est une nouvelle référence en matière de divertissement urbain premium à Abidjan.
               Inspiré des grands concepts internationaux et adapté aux réalités africaines, ce projet offre une expérience
@@ -110,7 +111,7 @@ export default function Landing() {
           >
             <div className="aspect-video rounded-2xl overflow-hidden">
               <img
-                src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80"
+                src={image}
                 alt="Drive-In Cinema"
                 className="w-full h-full object-cover"
               />

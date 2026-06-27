@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   createBooking, getMesReservations, getBooking, annulerBooking,
   scanQR, getAllBookings, getStats, verifyBooking, scanBookingByNumero,
-  getStaffStats, getExpiredStats, getTakenSeats
+  getStaffStats, getExpiredStats, getTakenSeats, getBookingAnalytics
 } from '../controllers/bookingController.js';
 import { protect, adminOnly, staffOrAdmin } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validate.js';
@@ -17,6 +17,7 @@ router.get('/all', protect, adminOnly, getAllBookings);
 router.post('/scan', protect, adminOnly, validate(scanQRSchema), scanQR);
 router.get('/stats/staff',   protect, staffOrAdmin, getStaffStats);
 router.get('/stats/expired', protect, adminOnly,   getExpiredStats);
+router.get('/stats/analytics', protect, adminOnly, getBookingAnalytics);
 router.get('/verify/:numero', verifyBooking);
 router.patch('/verify/:numero/scan', protect, staffOrAdmin, scanBookingByNumero);
 router.get('/:id', protect, getBooking);
