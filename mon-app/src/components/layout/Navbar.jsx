@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
-import { Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { User, LogOut, LayoutDashboard } from 'lucide-react';
 import { selectCurrentUser, selectIsAuthenticated, logout } from '../../store/slices/authSlice';
 import { useLogoutMutation } from '../../store/api/authApi';
 
@@ -13,7 +12,6 @@ const links = [
 ];
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -31,7 +29,6 @@ export default function Navbar() {
     await logoutMutation();
     dispatch(logout());
     navigate('/');
-    setOpen(false);
   };
 
   return (
@@ -42,7 +39,8 @@ export default function Navbar() {
           <span className="hidden sm:block text-muted text-xs font-label">Drive-In</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        {/* Navigation desktop (≥ lg) — sur mobile/tablette, c'est le BottomNav qui prend le relais */}
+        <nav className="hidden lg:flex items-center gap-8">
           {links.map(({ to, label }) => (
             <NavLink
               key={to}
@@ -56,7 +54,7 @@ export default function Navbar() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           {isAuth ? (
             <div className="flex items-center gap-3">
               {user?.role === 'admin' && (
@@ -80,48 +78,7 @@ export default function Navbar() {
             </Link>
           )}
         </div>
-
-        <button className="md:hidden text-muted hover:text-white transition-colors" onClick={() => setOpen(!open)}>
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
       </div>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="md:hidden glass border-t border-white/5"
-          >
-            <div className="flex flex-col px-4 py-4 gap-4">
-              {links.map(({ to, label }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    `font-label text-sm py-2 ${isActive ? 'text-gold' : 'text-muted'}`
-                  }
-                >
-                  {label}
-                </NavLink>
-              ))}
-              {isAuth ? (
-                <>
-                  <Link to="/espace" onClick={() => setOpen(false)} className="text-sm text-muted py-2">Mon espace</Link>
-                  {user?.role === 'admin' && (
-                    <Link to="/admin" onClick={() => setOpen(false)} className="text-sm text-gold py-2">Admin</Link>
-                  )}
-                  <button onClick={handleLogout} className="text-left text-sm text-cinema py-2">Déconnexion</button>
-                </>
-              ) : (
-                <Link to="/connexion" onClick={() => setOpen(false)} className="text-sm text-gold py-2">Se connecter</Link>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </header>
   );
 }
