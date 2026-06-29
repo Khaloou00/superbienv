@@ -12,10 +12,12 @@ import { useAddCommentMutation, useToggleFavoriMutation } from '../../store/api/
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import StarField from '../../components/ui/StarField';
+import NotificationsView from '../../components/NotificationsView';
 
 const TABS = [
   { id: 'reservations', label: 'Réservations', icon: Ticket },
   { id: 'favoris', label: 'Favoris', icon: Heart },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'profil', label: 'Profil', icon: User },
 ];
 
@@ -273,6 +275,12 @@ export default function MonEspace() {
       )}
 
       {/* Profil Tab */}
+      {tab === 'notifications' && (
+        <div className="max-w-2xl">
+          <NotificationsView canReport={false} />
+        </div>
+      )}
+
       {tab === 'profil' && (
         <div className="max-w-md">
           <div className="bg-surface rounded-2xl p-6 border border-white/5 space-y-4 relative">

@@ -22,6 +22,9 @@ import VerifyBooking from './pages/VerifyBooking';
 import ForgotPassword from './pages/ForgotPassword';
 import StaffLogin from './pages/staff/StaffLogin';
 import StaffScanner from './pages/staff/StaffScanner';
+import StaffTickets from './pages/staff/StaffTickets';
+import StaffProfil from './pages/staff/StaffProfil';
+import StaffNotifications from './pages/staff/StaffNotifications';
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -111,6 +114,18 @@ export default function App() {
         <Route
           path="/staff/scanner"
           element={<StaffRoute><StaffScanner /></StaffRoute>}
+        />
+        <Route
+          path="/staff/tickets"
+          element={<StaffRoute><StaffTickets /></StaffRoute>}
+        />
+        <Route
+          path="/staff/profil"
+          element={<StaffRoute><StaffProfil /></StaffRoute>}
+        />
+        <Route
+          path="/staff/notifications"
+          element={<StaffRoute><StaffNotifications /></StaffRoute>}
         />
         <Route
           path="/reservation/:filmId"

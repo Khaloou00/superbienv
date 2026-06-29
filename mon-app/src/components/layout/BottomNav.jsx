@@ -1,8 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
-import { Home, Film, CalendarDays, User, LogIn, LayoutDashboard } from 'lucide-react';
+import {
+  Home, Film, CalendarDays, User, LogIn, LayoutDashboard, Camera, Ticket, Bell,
+} from 'lucide-react';
 import { selectCurrentUser, selectIsAuthenticated } from '../../store/slices/authSlice';
+import { useGetUnreadCountQuery } from '../../store/api/notificationsApi';
 
 // Texture "liquide" subtile (bruit fractal) posée sur le verre
 function LiquidTexture() {
@@ -19,25 +22,51 @@ function LiquidTexture() {
   );
 }
 
-export default function BottomNav() {
+// persistent = visible aussi sur desktop (utilisé par l'app staff)
+export default function BottomNav({ persistent = false }) {
   const { pathname } = useLocation();
   const user = useSelector(selectCurrentUser);
   const isAuth = useSelector(selectIsAuthenticated);
+  const role = user?.role;
 
-  const items = [
-    { to: '/', label: 'Accueil', icon: Home, match: (p) => p === '/' },
-    { to: '/programme', label: 'Programme', icon: Film },
-    { to: '/evenements', label: 'Events', icon: CalendarDays },
-    ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin', icon: LayoutDashboard }] : []),
-    isAuth
-      ? { to: '/espace', label: 'Compte', icon: User }
-      : { to: '/connexion', label: 'Connexion', icon: LogIn },
-  ];
+  const { data: unreadData } = useGetUnreadCountQuery(undefined, {
+    skip: !isAuth,
+    pollingInterval: 60000,
+  });
+  const unread = unreadData?.unread ?? 0;
+
+  let items;
+  if (isAuth && role === 'staff') {
+    items = [
+      { to: '/staff/scanner', label: 'Scanner', icon: Camera },
+      { to: '/staff/tickets', label: 'Tickets', icon: Ticket },
+      { to: '/staff/profil', label: 'Profil', icon: User },
+      { to: '/staff/notifications', label: 'Alertes', icon: Bell, badge: unread },
+    ];
+  } else if (isAuth && role === 'admin') {
+    items = [
+      { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, match: (p) => p === '/admin' },
+      { to: '/staff/scanner', label: 'Scanner', icon: Camera },
+      { to: '/staff/notifications', label: 'Alertes', icon: Bell, badge: unread },
+      { to: '/espace', label: 'Compte', icon: User },
+    ];
+  } else {
+    items = [
+      { to: '/', label: 'Accueil', icon: Home, match: (p) => p === '/' },
+      { to: '/programme', label: 'Programme', icon: Film },
+      { to: '/evenements', label: 'Events', icon: CalendarDays },
+      isAuth
+        ? { to: '/espace', label: 'Compte', icon: User, badge: unread }
+        : { to: '/connexion', label: 'Connexion', icon: LogIn },
+    ];
+  }
 
   const isActive = (it) => (it.match ? it.match(pathname) : pathname.startsWith(it.to));
 
   return (
-    <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.55rem)] pointer-events-none">
+    <div
+      className={`${persistent ? '' : 'lg:hidden'} fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.55rem)] pointer-events-none`}
+    >
       <motion.nav
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -68,6 +97,11 @@ export default function BottomNav() {
                 className="relative z-10"
               >
                 <Icon size={20} className={active ? 'text-gold' : 'text-muted'} strokeWidth={active ? 2.4 : 2} />
+                {it.badge > 0 && (
+                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-cinema px-1 text-[9px] font-bold text-white">
+                    {it.badge > 9 ? '9+' : it.badge}
+                  </span>
+                )}
               </motion.span>
               <span
                 className={`relative z-10 truncate text-[10px] font-label leading-none transition-colors ${

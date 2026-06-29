@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLoginMutation } from '../store/api/authApi';
-import { setCredentials, selectIsAuthenticated } from '../store/slices/authSlice';
+import { setCredentials, selectIsAuthenticated, selectCurrentUser } from '../store/slices/authSlice';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import StarField from '../components/ui/StarField';
@@ -17,15 +17,22 @@ const schema = z.object({
   password: z.string().min(6, 'Minimum 6 caractères'),
 });
 
+// Page d'accueil par défaut selon le rôle (le staff atterrit directement sur son espace)
+const roleHome = (role) => (role === 'admin' ? '/admin' : role === 'staff' ? '/staff/scanner' : '/');
+
 export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const isAuth = useSelector(selectIsAuthenticated);
+  const currentUser = useSelector(selectCurrentUser);
   const [loginMutation, { isLoading }] = useLoginMutation();
-  const from = location.state?.from || '/';
+  const from = location.state?.from;
 
-  useEffect(() => { if (isAuth) navigate(from, { replace: true }); }, [isAuth, navigate, from]);
+  // Déjà connecté : redirige vers la destination demandée, sinon l'accueil du rôle
+  useEffect(() => {
+    if (isAuth) navigate(from || roleHome(currentUser?.role), { replace: true });
+  }, [isAuth, navigate, from, currentUser]);
 
   const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(schema) });
 
@@ -34,7 +41,7 @@ export default function Login() {
       const data = await loginMutation(values).unwrap();
       dispatch(setCredentials({ user: data.user, accessToken: data.accessToken }));
       toast.success(`Bienvenue, ${data.user.nom.split(' ')[0]} !`);
-      navigate(from, { replace: true });
+      navigate(from || roleHome(data.user?.role), { replace: true });
     } catch (err) {
       toast.error(err.data?.message || 'Erreur de connexion');
     }

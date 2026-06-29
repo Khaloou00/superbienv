@@ -87,6 +87,7 @@ import authRoutes from './routes/authRoutes.js';
 import filmRoutes from './routes/filmRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
 
 // ✅ Crash handlers AVANT tout le reste
@@ -165,6 +166,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/films', filmRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

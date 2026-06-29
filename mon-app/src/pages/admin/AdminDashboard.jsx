@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import {
   LayoutDashboard, Film, Ticket, QrCode, TrendingUp, Car,
   CalendarDays, Plus, X, ImagePlus, AlertTriangle, ChevronDown, ChevronUp,
-  History, BarChart3,
+  History, BarChart3, MessageSquare,
 } from 'lucide-react';
 import { useGetStatsQuery, useGetAllBookingsQuery, useScanQRMutation, useGetExpiredStatsQuery } from '../../store/api/bookingsApi';
 import { useGetFilmsQuery, useDeleteFilmMutation, useCreateFilmMutation, useUpdateFilmMutation } from '../../store/api/filmsApi';
@@ -14,6 +14,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import HistoriqueFilms from './HistoriqueFilms';
 import BookingAnalytics from './BookingAnalytics';
+import AdminMessages from './AdminMessages';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ const TABS = [
   { id: 'events',     label: 'Événements',           icon: CalendarDays },
   { id: 'bookings',   label: 'Réservations',         icon: Ticket },
   { id: 'analytics',  label: 'Statistiques',         icon: BarChart3 },
+  { id: 'messages',   label: 'Messages',             icon: MessageSquare },
   { id: 'scanner',    label: 'Scanner QR',           icon: QrCode },
 ];
 
@@ -658,6 +660,9 @@ export default function AdminDashboard() {
 
         {/* ── ANALYTICS / STATISTIQUES ── */}
         {tab === 'analytics' && <BookingAnalytics />}
+
+        {/* ── MESSAGES / NOTIFICATIONS ── */}
+        {tab === 'messages' && <AdminMessages />}
 
         {/* ── SCANNER ── */}
         {tab === 'scanner' && (
